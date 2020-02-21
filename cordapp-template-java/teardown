@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Script to be used under dev-mode only
+
+set -eo pipefail
+
+kill $(lsof -ti tcp:10002);
+kill $(lsof -ti tcp:10005);
+kill $(lsof -ti tcp:10008);
