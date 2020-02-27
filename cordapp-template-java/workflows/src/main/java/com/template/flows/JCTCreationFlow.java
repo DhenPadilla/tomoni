@@ -1,8 +1,10 @@
 package com.template.flows;
 
-import com.template.contracts.IOUContract;
 import co.paralleluniverse.fibers.Suspendable;
+import com.template.contracts.IOUContract;
+import com.template.contracts.JCTMasterContract;
 import com.template.states.IOUState;
+import com.template.states.JCTMasterState;
 import net.corda.core.contracts.Command;
 import net.corda.core.flows.*;
 import net.corda.core.identity.Party;
@@ -11,61 +13,53 @@ import net.corda.core.transactions.TransactionBuilder;
 import net.corda.core.utilities.ProgressTracker;
 
 import java.security.PublicKey;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-// ******************
-// * Initiator flow *
-// ******************
-@InitiatingFlow
-@StartableByRPC
-public class IOUFlow extends FlowLogic<Void> {
-    private final Integer iouValue;
-    private final Party otherParty;
 
-    /**
-     * The progress tracker provides checkpoints indicating the progress of the flow to observers.
-     */
+public class JCTCreationFlow extends FlowLogic<Void> {
+    private final String projectName;
+    private final List<Party> contractors;
+    private final List<Party> employers;
+
     private final ProgressTracker progressTracker = new ProgressTracker();
 
-    public IOUFlow(Integer iouValue, Party otherParty) {
-        this.iouValue = iouValue;
-        this.otherParty = otherParty;
+    public JCTCreationFlow(String projectName, List<Party> contractors, List<Party> employers) {
+        this.projectName = projectName;
+        this.contractors = contractors;
+        this.employers = employers;
+    }
+
+    private List<PublicKey> getOwningKeys(List<Party> parties) {
+        List<PublicKey> keys = new ArrayList<PublicKey>();
+        parties.forEach((party) -> keys.add(party.getOwningKey()));
+        return keys;
     }
 
     @Override
-    public ProgressTracker getProgressTracker() {
-        return progressTracker;
-    }
+    public ProgressTracker getProgressTracker() { return progressTracker; }
 
-    /**
-     * Any state's flow logic is encapsulated within the call() method.
-     */
     @Suspendable
     @Override
     public Void call() throws FlowException {
-        // We retrieve the notary identity from the network map.
-        // The first thing we do in our flow is retrieve the a notary from the
-        // node’s ServiceHub.
-        // ServiceHub.networkMapCache provides information about the
-        // other nodes on the network and the services that they offer.
         Party notary = getServiceHub().getNetworkMapCache().getNotaryIdentities().get(0);
 
         // Create the transaction components
-        // (I think getOurIdentity() get's the Flow-caller's Party object
-        IOUState outputState = new IOUState(iouValue, getOurIdentity(), otherParty);
+        JCTMasterState outputState = new JCTMasterState(projectName, Arrays.asList(getOurIdentity()), contractors);
 
         //List of required signers:
-        List<PublicKey> requiredSigners = Arrays.asList(getOurIdentity().getOwningKey(), otherParty.getOwningKey());
+        List<PublicKey> requiredSigners = Arrays.asList(getOurIdentity().getOwningKey());
+        requiredSigners.addAll(getOwningKeys(contractors));
 
-        Command command = new Command<>(new IOUContract.Create(), getOurIdentity().getOwningKey());
+        Command createCommand = new Command<>(new JCTMasterContract.Create(), requiredSigners);
 
         // Create a transaction builder and add the components
         // Transaction builders take in 'notary' party as the parameter to
         // instantiate the txBuilder
         TransactionBuilder txBuilder = new TransactionBuilder(notary)
-                .addOutputState(outputState, IOUContract.ID)
-                .addCommand(command);
+                .addOutputState(outputState, JCTMasterContract.ID)
+                .addCommand(createCommand);
 
         // Verifying the transaction.
         txBuilder.verify(getServiceHub());
@@ -73,8 +67,8 @@ public class IOUFlow extends FlowLogic<Void> {
         // Signing the transaction.
         SignedTransaction signedTx = getServiceHub().signInitialTransaction(txBuilder);
 
-        // Creating a session with the other party.
-        FlowSession otherPartySession = initiateFlow(otherParty);
+        // Creating a session with the collection of other parties.
+        CollectSignaturesFlow otherPartySession = initiateFlow(otherParty);
 
         // Obtaining the counterparty's signature.
         SignedTransaction fullySignedTx = subFlow(new CollectSignaturesFlow(

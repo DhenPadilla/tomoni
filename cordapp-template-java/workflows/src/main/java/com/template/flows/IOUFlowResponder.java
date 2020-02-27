@@ -45,7 +45,7 @@ public class IOUFlowResponder extends FlowLogic<Void> {
 
         // Responder flow logic goes here.
         subFlow(new ReceiveFinalityFlow(otherPartySession, expectedTxId));
-        
+
         return null;
     }
 }
