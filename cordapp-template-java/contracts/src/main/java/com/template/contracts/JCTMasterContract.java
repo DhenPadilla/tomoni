@@ -30,24 +30,24 @@ public class JCTMasterContract implements Contract {
 
     }
 
-    private class sortByOwningKey implements Comparator<AbstractParty>
-    {
-        // Used for sorting in ascending order of party owningKey
-        public int compare(AbstractParty a, AbstractParty b)
-        {
-            return a.hashCode() - b.hashCode();
-        }
-    }
-
-    private List<PublicKey> getOwningKeys(List<Party> parties) {
-        List<PublicKey> keys = new ArrayList<PublicKey>();
-        parties.forEach((party) -> keys.add(party.getOwningKey()));
-        return keys;
-    }
+//    private class sortByOwningKey implements Comparator<AbstractParty>
+//    {
+//        // Used for sorting in ascending order of party owningKey
+//        public int compare(AbstractParty a, AbstractParty b)
+//        {
+//            return a.hashCode() - b.hashCode();
+//        }
+//    }
+//
+//    private List<PublicKey> getOwningKeys(List<Party> parties) {
+//        List<PublicKey> keys = new ArrayList<PublicKey>();
+//        parties.forEach((party) -> keys.add(party.getOwningKey()));
+//        return keys;
+//    }
 
 
     @Override
-    public void verify(@NotNull LedgerTransaction tx) {
+    public void verify(LedgerTransaction tx) {
         final CommandWithParties<JCTMasterContract.Create> command = requireSingleCommand(tx.getCommands(), JCTMasterContract.Create.class);
 
         // Constraints on the shape of the transaction.
@@ -62,25 +62,21 @@ public class JCTMasterContract implements Contract {
 
         // JCT-state-specific constraints
         final JCTMasterState output = tx.outputsOfType(JCTMasterState.class).get(0);
-        final List<Party> employers = output.getEmployers();
-        final List<Party> contractors = output.getContractors();
+        final Party employer = output.getEmployer();
+        final Party contractor = output.getContractor();
 
         if(output.getProjectName().isEmpty())
             throw new IllegalArgumentException("The JCT must have a project name to be created");
 
         // Check if Employers == Contractors
-        Collections.sort(employers, new sortByOwningKey());
-        Collections.sort(contractors, new sortByOwningKey());
-        if(employers.equals(contractors)) {
+        if(employer.equals(contractor)) {
             throw new IllegalArgumentException("The Employers must not be the same as the Contractors of the project");
         }
 
         // Constraints on the signers of the contract
         // Two-tiered signer groups
         final List<PublicKey> requiredSigners = command.getSigners();
-        final List<PublicKey> expectedSigners = getOwningKeys(employers);
-        final List<PublicKey> contractorSigners = getOwningKeys(contractors);
-        expectedSigners.addAll(contractorSigners);
+        final List<PublicKey> expectedSigners = Arrays.asList(employer.getOwningKey(), contractor.getOwningKey());
 
         // Specify the constraints on the number of signers required
         if (requiredSigners.size() < 2)

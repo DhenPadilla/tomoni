@@ -30,11 +30,11 @@ public class IOUState implements ContractState {
         return value;
     }
 
-    public Party getLender() {
+    public Party getEmployer() {
         return lender;
     }
 
-    public Party getBorrower() {
+    public Party getContractor() {
         return borrower;
     }
 

@@ -1,9 +1,7 @@
 package com.template.flows;
 
 import co.paralleluniverse.fibers.Suspendable;
-import com.template.contracts.IOUContract;
 import com.template.contracts.JCTMasterContract;
-import com.template.states.IOUState;
 import com.template.states.JCTMasterState;
 import net.corda.core.contracts.Command;
 import net.corda.core.flows.*;
@@ -11,48 +9,78 @@ import net.corda.core.identity.Party;
 import net.corda.core.transactions.SignedTransaction;
 import net.corda.core.transactions.TransactionBuilder;
 import net.corda.core.utilities.ProgressTracker;
+import net.corda.core.utilities.ProgressTracker.*;
+import org.jetbrains.annotations.NotNull;
 
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-
+// ******************
+// * Initiator flow *
+// ******************
+@InitiatingFlow
+@StartableByRPC
 public class JCTCreationFlow extends FlowLogic<Void> {
     private final String projectName;
-    private final List<Party> contractors;
-    private final List<Party> employers;
+    private final Party contractor;
+    private final Party employer;
 
-    private final ProgressTracker progressTracker = new ProgressTracker();
-
-    public JCTCreationFlow(String projectName, List<Party> contractors, List<Party> employers) {
+    public JCTCreationFlow(String projectName, Party contractor, Party employer) {
         this.projectName = projectName;
-        this.contractors = contractors;
-        this.employers = employers;
+        this.contractor = contractor;
+        this.employer = employer;
     }
 
-    private List<PublicKey> getOwningKeys(List<Party> parties) {
-        List<PublicKey> keys = new ArrayList<PublicKey>();
-        parties.forEach((party) -> keys.add(party.getOwningKey()));
-        return keys;
-    }
+    //Progress tracker
+    private final Step GENERATING_TRANSACTION = new Step("Generating transaction based on new IOU.");
+    private final Step VERIFYING_TRANSACTION = new Step("Verifying contract constraints.");
+    private final Step SIGNING_TRANSACTION = new Step("Signing transaction with our private key.");
+    private final Step GATHERING_SIGS = new Step("Gathering the counterparty's signature.") {
+        @Override
+        public ProgressTracker childProgressTracker() {
+            return CollectSignaturesFlow.Companion.tracker();
+        }
+    };
+
+    private final Step FINALISING_TRANSACTION = new Step("Obtaining notary signature and recording transaction.") {
+        @Override
+        public ProgressTracker childProgressTracker() {
+            return FinalityFlow.Companion.tracker();
+        }
+    };
+
+    private final ProgressTracker progressTracker = new ProgressTracker(
+            GENERATING_TRANSACTION,
+            VERIFYING_TRANSACTION,
+            SIGNING_TRANSACTION,
+            GATHERING_SIGS,
+            FINALISING_TRANSACTION
+    );
 
     @Override
-    public ProgressTracker getProgressTracker() { return progressTracker; }
+    public ProgressTracker getProgressTracker() {
+        return progressTracker;
+    }
 
     @Suspendable
     @Override
     public Void call() throws FlowException {
         Party notary = getServiceHub().getNetworkMapCache().getNotaryIdentities().get(0);
 
+        // Stage 1.
+        progressTracker.setCurrentStep(GENERATING_TRANSACTION);
         // Create the transaction components
-        JCTMasterState outputState = new JCTMasterState(projectName, Arrays.asList(getOurIdentity()), contractors);
-
-        //List of required signers:
-        List<PublicKey> requiredSigners = Arrays.asList(getOurIdentity().getOwningKey());
-        requiredSigners.addAll(getOwningKeys(contractors));
-
-        Command createCommand = new Command<>(new JCTMasterContract.Create(), requiredSigners);
+        JCTMasterState outputState = new JCTMasterState(projectName, getOurIdentity(), contractor);
+        // Generate unsigned transaction
+        Party me = getOurIdentity();
+        List<PublicKey> requiredSigners = Arrays.asList(me.getOwningKey());
+        requiredSigners.add(contractor.getOwningKey());
+//        Command createCommand = new Command<>(new JCTMasterContract.Create(), requiredSigners);
+        Command createCommand = new Command<>(new JCTMasterContract.Create(), me.getOwningKey());
 
         // Create a transaction builder and add the components
         // Transaction builders take in 'notary' party as the parameter to
@@ -61,21 +89,32 @@ public class JCTCreationFlow extends FlowLogic<Void> {
                 .addOutputState(outputState, JCTMasterContract.ID)
                 .addCommand(createCommand);
 
+        // Stage 2.
+        progressTracker.setCurrentStep(VERIFYING_TRANSACTION);
         // Verifying the transaction.
         txBuilder.verify(getServiceHub());
 
+
+        // Stage 3.
+        progressTracker.setCurrentStep(SIGNING_TRANSACTION);
         // Signing the transaction.
-        SignedTransaction signedTx = getServiceHub().signInitialTransaction(txBuilder);
+        final SignedTransaction partSignedTx = getServiceHub().signInitialTransaction(txBuilder);
 
-        // Creating a session with the collection of other parties.
-        CollectSignaturesFlow otherPartySession = initiateFlow(otherParty);
-
-        // Obtaining the counterparty's signature.
+        // Stage 4.
+        progressTracker.setCurrentStep(GATHERING_SIGS);
+        // Create and collect set of flow sessions between
+//        Set<FlowSession> sessions = contractor.stream().map(it -> initiateFlow(it)).collect(Collectors.toSet());
+        FlowSession session = initiateFlow(contractor);
+        // Obtain the counterparty signatures
+//        final SignedTransaction fullySignedTx = subFlow(new CollectSignaturesFlow(partSignedTx,
+//                sessions, CollectSignaturesFlow.Companion.tracker()));
         SignedTransaction fullySignedTx = subFlow(new CollectSignaturesFlow(
-                signedTx, Arrays.asList(otherPartySession), CollectSignaturesFlow.tracker()));
+                partSignedTx, Arrays.asList(session), CollectSignaturesFlow.Companion.tracker()));
 
+        // Stage 5.
+        progressTracker.setCurrentStep(FINALISING_TRANSACTION);
         // We finalise the transaction and then send it to the counterparty.
-        subFlow(new FinalityFlow(signedTx, otherPartySession));
+        subFlow(new FinalityFlow(partSignedTx, session));
 
         return null;
     }

@@ -47,8 +47,8 @@ public class IOUContract implements Contract {
 
         // IOU-state-specific constraints
         final IOUState output = tx.outputsOfType(IOUState.class).get(0);
-        final Party lender = output.getLender();
-        final Party borrower = output.getBorrower();
+        final Party lender = output.getEmployer();
+        final Party borrower = output.getContractor();
 
         if(output.getValue() <= 0)
             throw new IllegalArgumentException("The IOU's value must be non-negative to be created");

@@ -15,33 +15,30 @@ import static java.util.Collections.*;
 @BelongsToContract(JCTMasterContract.class)
 public class JCTMasterState implements ContractState {
 
-    private final List<Party> employers = emptyList();
-    private final List<Party> contractors = emptyList();
+    private final Party employer;
+    private final Party contractor;
     private final String projectName;
 
-    public JCTMasterState(String projectName, List<Party> employers, List<Party> contractors) {
+    public JCTMasterState(String projectName, Party employer, Party contractor) {
         this.projectName = projectName;
-        this.employers.addAll(employers);
-        this.contractors.addAll(contractors);
+        this.employer = employer;
+        this.contractor = contractor;
     }
 
     public String getProjectName() {
         return projectName;
     }
 
-    public List<Party> getEmployers() {
-        return employers;
+    public Party getEmployer() {
+        return employer;
     }
 
-    public List<Party> getContractors() {
-        return contractors;
+    public Party getContractor() {
+        return contractor;
     }
 
     @Override
     public List<AbstractParty> getParticipants() {
-        List<AbstractParty> allParts = new ArrayList<>();
-        allParts.addAll(employers);
-        allParts.addAll(contractors);
-        return allParts;
+        return Arrays.asList(employer, contractor);
     }
 }
