@@ -71,18 +71,18 @@ public class JCTCreationFlowTest {
     @Rule
     public final ExpectedException exception = ExpectedException.none();
 
-//    @Test
-//    public void flowRejectsInvalidJCTs() throws Exception {
-//        JCTFlow flow = new JCTFlow("", employer, contractor);
-//        CordaFuture<Void> future = employerNode.startFlow(flow);
-//        mockNet.runNetwork();
-//
-//        exception.expectCause(instanceOf(TransactionVerificationException.class));
-//        future.get();
-//    }
-
     @Test public void flowRequiresListOfParties() throws Exception {
         JCTFlow flow = new JCTFlow("Hello", Arrays.asList(employer), Arrays.asList(contractor1));
+        CordaFuture<Void> future = employerNode.startFlow(flow);
+        mockNet.runNetwork();
+
+        exception.expectCause(instanceOf(TransactionVerificationException.class));
+        future.get();
+    }
+
+    @Test
+    public void flowRejectsInvalidJCTs() throws Exception {
+        JCTFlow flow = new JCTFlow("", Arrays.asList(employer), Arrays.asList(contractor1, contractor2));
         CordaFuture<Void> future = employerNode.startFlow(flow);
         mockNet.runNetwork();
 

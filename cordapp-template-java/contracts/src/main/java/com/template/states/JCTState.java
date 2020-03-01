@@ -41,6 +41,6 @@ public class JCTState implements ContractState {
         final List<AbstractParty> parts = new ArrayList<>();
         parts.addAll(employer);
         parts.addAll(contractor);
-        return parts;
+        return parts;a
     }
 }

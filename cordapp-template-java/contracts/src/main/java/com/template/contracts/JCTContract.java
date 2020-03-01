@@ -48,7 +48,7 @@ public class JCTContract implements Contract {
     // A transaction is valid if the verify() function of the contract of all the transaction's input and output states
     // does not throw an exception.
     @Override
-    public void verify(LedgerTransaction tx) {
+    public void verify(LedgerTransaction tx) throws IllegalArgumentException {
         // Tests whether there exists a *single* 'Create'
         // command is present within the transaction/contract
         final CommandWithParties<JCTContract.Create> command = requireSingleCommand(tx.getCommands(), JCTContract.Create.class);
@@ -59,9 +59,9 @@ public class JCTContract implements Contract {
 
         // Constraints on the shape of the transaction.
         if (!tx.getInputs().isEmpty())
-            throw new IllegalArgumentException("No inputs should be consumed when issuing an IOU.");
+            throw new IllegalArgumentException("No inputs should be consumed when issuing an JCT.");
         if (!(tx.getOutputs().size() == 1))
-            throw new IllegalArgumentException("There should be one output state of type IOUState.");
+            throw new IllegalArgumentException("There should be one output state of type JCTState.");
 
         // JCT-state-specific constraints
         final JCTState output = tx.outputsOfType(JCTState.class).get(0);
@@ -81,7 +81,7 @@ public class JCTContract implements Contract {
         expectedSigners.addAll(getOwningKeys(contractor));
 
         // Specify the constraints on the number of signers required
-        if (requiredSigners.size() <= 2)
+        if (expectedSigners.size() <= 2)
             throw new IllegalArgumentException("There must be more than signers in this transaction");
         if (!(expectedSigners.containsAll(expectedSigners)))
             throw new IllegalArgumentException("The Employer and Contractor must be signers to this transaction");
