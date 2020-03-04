@@ -20,6 +20,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -71,8 +72,9 @@ public class JCTCreationFlowTest {
     @Rule
     public final ExpectedException exception = ExpectedException.none();
 
-    @Test public void flowRequiresListOfParties() throws Exception {
-        JCTFlow flow = new JCTFlow("Hello", Arrays.asList(employer), Arrays.asList(contractor1));
+    @Test
+    public void flowRequiresListOfParties() throws Exception {
+        JCTFlow flow = new JCTFlow("Hello", Arrays.asList(employer), new ArrayList<>());
         CordaFuture<Void> future = employerNode.startFlow(flow);
         mockNet.runNetwork();
 

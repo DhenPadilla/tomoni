@@ -1,10 +1,14 @@
 package com.template.flows;
 
 import co.paralleluniverse.fibers.Suspendable;
+import com.google.common.collect.ImmutableList;
 import com.template.contracts.JCTContract;
 import com.template.states.JCTState;
 import net.corda.core.contracts.Command;
+import net.corda.core.contracts.StateAndRef;
+import net.corda.core.contracts.UniqueIdentifier;
 import net.corda.core.flows.*;
+//import com.template.flows.JCTBaseFlow;
 import net.corda.core.identity.Party;
 import net.corda.core.transactions.SignedTransaction;
 import net.corda.core.transactions.TransactionBuilder;
@@ -21,8 +25,10 @@ import java.util.stream.Collectors;
 // ******************
 @InitiatingFlow
 @StartableByRPC
-public class JCTFlow extends FlowLogic<SignedTransaction> {
+public class AddRecitalsInitiatorFlow extends JCTBaseFlow {
+    private final UniqueIdentifier linearId;
     private final String projectName;
+    private final List<Integer> recitals;
     private final List<Party> employer;
     private final List<Party> contractor;
 
@@ -31,16 +37,12 @@ public class JCTFlow extends FlowLogic<SignedTransaction> {
      */
     private final ProgressTracker progressTracker = new ProgressTracker();
 
-    public JCTFlow(String projectName, List<Party> contractor, List<Party> employer) {
+    public AddRecitalsInitiatorFlow(UniqueIdentifier linearId, String projectName, List<Integer> recitals, List<Party> employer, List<Party> contractor) {
+        this.linearId = linearId;
         this.projectName = projectName;
-        this.contractor = contractor;
+        this.recitals = recitals;
         this.employer = employer;
-    }
-
-    private List<PublicKey> getOwningKeys(List<Party> parties) {
-        List<PublicKey> keys = new ArrayList<PublicKey>();
-        parties.forEach((party) -> keys.add(party.getOwningKey()));
-        return keys;
+        this.contractor = contractor;
     }
 
     @Override
@@ -49,6 +51,15 @@ public class JCTFlow extends FlowLogic<SignedTransaction> {
     }
 
     @Suspendable
+    private JCTState createOutJCTWithRecitals(JCTState inputJCT) {
+        return inputJCT.appendRecitals(recitals);
+    }
+
+    /**
+     * Any state's flow logic is encapsulated within the call() method.
+     * @return
+     */
+    @Suspendable
     @Override
     public SignedTransaction call() throws FlowException {
         // We retrieve the notary identity from the network map.
@@ -56,35 +67,46 @@ public class JCTFlow extends FlowLogic<SignedTransaction> {
         // node’s ServiceHub.
         // ServiceHub.networkMapCache provides information about the
         // other nodes on the network and the services that they offer.
-        Party notary = getServiceHub().getNetworkMapCache().getNotaryIdentities().get(0);
+//        Party notary = getServiceHub().getNetworkMapCache().getNotaryIdentities().get(0);
+        Party notary = getFirstNotary();
+
+        // Create the set of sessions with the contractor parties
+        Set<FlowSession> sessions = contractor.stream().map(it -> initiateFlow(it)).collect(Collectors.toSet());
+
+        // Get input states:
+        final StateAndRef<JCTState> JCTWithEmptyRecitals = getJCTStateByLinearId(linearId);
+        final JCTState inputJCT = JCTWithEmptyRecitals.getState().getData();
+
+        // Just a small check if this flow is initiated by a contractor:
+        if (inputJCT.getContractor().contains(getOurIdentity())) {
+            throw new IllegalStateException("Adding Recitals to a JCT can only be initiated by the Employer(s).");
+        }
 
         // Create the transaction components
-        // (I think getOurIdentity() get's the Flow-caller's Party object
-        JCTState outputState = new JCTState(projectName, employer, contractor);
+        final JCTState outputState = createOutJCTWithRecitals(inputJCT);
 
-        //List of required signers:
-        List<PublicKey> requiredSigners = new ArrayList<>();
-        requiredSigners.addAll(getOwningKeys(employer));
-        requiredSigners.addAll(getOwningKeys(contractor));
+        // Check to see if any of the signers have changed:
+        if (!outputState.getParticipants().containsAll(inputJCT.getParticipants())) {
+            throw new IllegalStateException("JCT Participants (Employer(s)/Contractor(s)) must not change when appending recitals");
+        }
 
-        Command command = new Command<>(new JCTContract.Commands.Create(), getOurIdentity().getOwningKey());
+        // Create the AddRecitals command.
+        final List<PublicKey> requiredSigners = new ImmutableList.Builder<PublicKey>()
+                        .addAll(outputState.getParticipantKeys()).build();
+        final Command addRecitalsCommand = new Command<>(new JCTContract.Commands.AddRecitals(), requiredSigners);
 
         // Create a transaction builder and add the components
         // Transaction builders take in 'notary' party as the parameter to
         // instantiate the txBuilder
         TransactionBuilder txBuilder = new TransactionBuilder(notary)
+                .addInputState(JCTWithEmptyRecitals)
                 .addOutputState(outputState, JCTContract.ID)
-                .addCommand(command);
-
+                .addCommand(addRecitalsCommand);
         // Verifying the transaction.
         txBuilder.verify(getServiceHub());
 
         // Signing the transaction.
         SignedTransaction signedTx = getServiceHub().signInitialTransaction(txBuilder);
-
-        // Creating a session with the other party.
-//        FlowSession otherPartySession = initiateFlow(contractor);
-        Set<FlowSession> sessions = contractor.stream().map(it -> initiateFlow(it)).collect(Collectors.toSet());
 
         // Obtaining the counterparty's signature.
 //        SignedTransaction fullySignedTx = subFlow(new CollectSignaturesFlow(
@@ -93,9 +115,6 @@ public class JCTFlow extends FlowLogic<SignedTransaction> {
                 sessions, CollectSignaturesFlow.Companion.tracker()));
 
         // We finalise the transaction and then send it to the counterparties.
-//        subFlow(new FinalityFlow(fullySignedTx, sessions));
-
-        return fullySignedTx;
+        return subFlow(new FinalityFlow(fullySignedTx, sessions));
     }
-
 }

@@ -6,6 +6,7 @@ import com.template.states.JCTState;
 import net.corda.core.contracts.CommandData;
 import net.corda.core.contracts.CommandWithParties;
 import net.corda.core.contracts.Contract;
+import net.corda.core.contracts.TypeOnlyCommandData;
 import net.corda.core.identity.AbstractParty;
 import net.corda.core.identity.Party;
 import net.corda.core.transactions.LedgerTransaction;
@@ -17,6 +18,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import static net.corda.core.contracts.ContractsDSL.requireSingleCommand;
+import static net.corda.core.contracts.ContractsDSL.requireThat;
 
 // ************
 // * Contract *
@@ -26,8 +28,10 @@ public class JCTContract implements Contract {
     public static final String ID = "com.template.contracts.JCTContract";
 
     // Create command used to create the contract
-    public static class Create implements CommandData {
-
+    public interface Commands extends CommandData {
+        class Create extends TypeOnlyCommandData implements Commands {}
+        class AddRecitals extends TypeOnlyCommandData implements Commands {}
+        class IssueEscrowAgreement extends TypeOnlyCommandData implements Commands {}
     }
 
     private class sortByOwningKey implements Comparator<AbstractParty> {
@@ -51,39 +55,73 @@ public class JCTContract implements Contract {
     public void verify(LedgerTransaction tx) throws IllegalArgumentException {
         // Tests whether there exists a *single* 'Create'
         // command is present within the transaction/contract
-        final CommandWithParties<JCTContract.Create> command = requireSingleCommand(tx.getCommands(), JCTContract.Create.class);
 
-        //If the Create command isn’t present, or if the transaction has
+        final Commands command = tx.findCommand(Commands.class, cmd -> true).getValue();
+
+        // CREATE THE JCT
+        if (command instanceof Commands.Create) {
+            verifyCreate(tx);
+        }
+
+        // ADD RECITALS TO JCT
+        if (command instanceof Commands.AddRecitals) {
+            verifyRecitals(tx);
+        }
+    }
+
+    private void verifyCreate(LedgerTransaction tx) {
+        // If the Create command isn’t present, or if the transaction has
         // multiple Create commands, an exception will be thrown
         // and contract verification will fail.
+        final CommandWithParties<Commands.Create> create = requireSingleCommand(tx.getCommands(), Commands.Create.class);
 
-        // Constraints on the shape of the transaction.
-        if (!tx.getInputs().isEmpty())
-            throw new IllegalArgumentException("No inputs should be consumed when issuing an JCT.");
-        if (!(tx.getOutputs().size() == 1))
-            throw new IllegalArgumentException("There should be one output state of type JCTState.");
+        requireThat(require -> {
+            // Input/Output state requirements.
+            require.using("No inputs should be consumed when issuing an JCT.", tx.getInputs().isEmpty());
+            require.using("There should be one output state of type JCTState.", tx.getOutputs().size() == 1);
 
-        // JCT-state-specific constraints
-        final JCTState output = tx.outputsOfType(JCTState.class).get(0);
-        final List<Party> employer = output.getEmployer();
-        final List<Party> contractor = output.getContractor();
+            // State-specific requirements
+            final JCTState output = tx.outputsOfType(JCTState.class).get(0);
+            final List<Party> employer = output.getEmployer();
+            final List<Party> contractor = output.getContractor();
+            require.using("A Project Name must be given to create a JCT", !output.getProjectName().isEmpty());
+            require.using("The Contractor cannot be the Employer", !employer.equals(contractor));
 
-        if(output.getProjectName().isEmpty())
-            throw new IllegalArgumentException("A Project Name must be given to create a JCT");
-        if(employer.equals(contractor))
-            throw new IllegalArgumentException("The Contractor cannot be Employer");
+            // Constraints on the signers of the contract
+            final List<PublicKey> requiredSigners = create.getSigners();
+            final List<PublicKey> expectedSigners = new ArrayList<>();
+            expectedSigners.addAll(getOwningKeys(employer));
+            expectedSigners.addAll(getOwningKeys(contractor));
+            require.using("There must be 2 or more signers in this transaction", expectedSigners.size() > 1);
+            require.using("There must be 2 or more signers in this transaction", expectedSigners.size() > 1);
+            require.using("The Employer and Contractor must be signers to this transaction", expectedSigners.containsAll(expectedSigners));
 
-        // Constraints on the signers of the contract
-        // Two-tiered signer groups
-        final List<PublicKey> requiredSigners = command.getSigners();
-        final List<PublicKey> expectedSigners = new ArrayList<>();
-        expectedSigners.addAll(getOwningKeys(employer));
-        expectedSigners.addAll(getOwningKeys(contractor));
+            return null;
+        });
+    }
 
-        // Specify the constraints on the number of signers required
-        if (expectedSigners.size() <= 2)
-            throw new IllegalArgumentException("There must be more than signers in this transaction");
-        if (!(expectedSigners.containsAll(expectedSigners)))
-            throw new IllegalArgumentException("The Employer and Contractor must be signers to this transaction");
+    private void verifyRecitals(LedgerTransaction tx) {
+        final CommandWithParties<Commands.AddRecitals> addRecitals = requireSingleCommand(tx.getCommands(), Commands.AddRecitals.class);
+
+        // Adding recitals to a JCT must consume a JCT state
+        requireThat(require -> {
+            // Input/Output state requirements.
+            require.using("No inputs should be consumed when issuing an JCT.", tx.getInputStates().size() == 1);
+            require.using("There should be one output state of type JCTState.", tx.getOutputs().size() == 1);
+
+            // State-specific requirements
+            final JCTState input = tx.inputsOfType(JCTState.class).get(0); // Must only be one in the list
+            final List<Party> prevParticipants = input.getEmployer();
+            prevParticipants.addAll(input.getContractor());
+
+            final JCTState output = tx.outputsOfType(JCTState.class).get(0);
+            final List<Party> newParticipants = output.getEmployer();
+            newParticipants.addAll(output.getContractor());
+            require.using("The new JCTState must have the same participating parties",
+                    prevParticipants.containsAll(newParticipants));
+
+            // Constraints on the signers of the contract -- None so far?
+            return null;
+        });
     }
 }
