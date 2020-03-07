@@ -9,6 +9,7 @@ import net.corda.core.contracts.TransactionVerificationException;
 import net.corda.core.concurrent.CordaFuture;
 import net.corda.core.identity.CordaX500Name;
 import net.corda.core.identity.Party;
+import net.corda.core.transactions.SignedTransaction;
 import net.corda.testing.node.MockNetwork;
 import net.corda.testing.node.MockNetworkParameters;
 import net.corda.testing.node.StartedMockNode;
@@ -75,7 +76,7 @@ public class JCTCreationFlowTest {
     @Test
     public void flowRequiresListOfParties() throws Exception {
         JCTFlow flow = new JCTFlow("Hello", Arrays.asList(employer), new ArrayList<>());
-        CordaFuture<Void> future = employerNode.startFlow(flow);
+        CordaFuture<SignedTransaction> future = employerNode.startFlow(flow);
         mockNet.runNetwork();
 
         exception.expectCause(instanceOf(TransactionVerificationException.class));
@@ -85,7 +86,7 @@ public class JCTCreationFlowTest {
     @Test
     public void flowRejectsInvalidJCTs() throws Exception {
         JCTFlow flow = new JCTFlow("", Arrays.asList(employer), Arrays.asList(contractor1, contractor2));
-        CordaFuture<Void> future = employerNode.startFlow(flow);
+        CordaFuture<SignedTransaction> future = employerNode.startFlow(flow);
         mockNet.runNetwork();
 
         exception.expectCause(instanceOf(TransactionVerificationException.class));

@@ -1,8 +1,10 @@
-package com.template.states;
+package com.template.states.clauses;
 
-import com.template.contracts.JCTContract;
-import com.template.contracts.JCTRecital;
-import net.corda.core.contracts.*;
+import com.template.contracts.clauses.JCTFirstRecital;
+import net.corda.core.contracts.BelongsToContract;
+import net.corda.core.contracts.ContractState;
+import net.corda.core.contracts.LinearState;
+import net.corda.core.contracts.UniqueIdentifier;
 import net.corda.core.identity.AbstractParty;
 import net.corda.core.identity.Party;
 import net.corda.core.serialization.ConstructorForDeserialization;
@@ -17,25 +19,25 @@ import java.util.stream.Collectors;
 // *********
 // * State *
 // *********
-@BelongsToContract(JCTContract.class)
-public class JCTState implements ContractState, LinearState {
+@BelongsToContract(JCTFirstRecital.class)
+public class JCTRecitalState implements ContractState, LinearState {
 
     private Instant issuanceDate;
     private final UniqueIdentifier linearId;
     private final String projectName;
     private final List<Party> employer;
     private final List<Party> contractor;
-    private final List<JCTRecital> recitals = new ArrayList<JCTRecital>();
+    private final List<UniqueIdentifier> recitals = new ArrayList<UniqueIdentifier>();
 
     @ConstructorForDeserialization
-    public JCTState(UniqueIdentifier linearId, String projectName, List<Party> employer, List<Party> contractor) {
+    public JCTRecitalState(UniqueIdentifier linearId, String projectName, List<Party> employer, List<Party> contractor) {
         this.linearId = linearId;
         this.projectName = projectName;
         this.employer = employer;
         this.contractor = contractor;
     }
 
-    public JCTState(String projectName, List<Party> employer, List<Party> contractor) {
+    public JCTRecitalState(String projectName, List<Party> employer, List<Party> contractor) {
         this.linearId = new UniqueIdentifier();
         this.projectName = projectName;
         this.employer = employer;
@@ -43,21 +45,16 @@ public class JCTState implements ContractState, LinearState {
     }
 
     // JCT-based state
-    public JCTState copy() {
-        return new JCTState(this.projectName, this.employer, this.contractor);
+    public JCTRecitalState copy() {
+        return new JCTRecitalState(this.projectName, this.employer, this.contractor);
     }
 
-    public JCTState signDate(Instant issuanceDate) {
-        JCTState stateWithSignedDate = new JCTState(this.projectName, this.employer, this.contractor);
+    public JCTRecitalState signDate(Instant issuanceDate) {
+        JCTRecitalState stateWithSignedDate = new JCTRecitalState(this.projectName, this.employer, this.contractor);
         stateWithSignedDate.issuanceDate = issuanceDate;
         return stateWithSignedDate;
     }
 
-    public JCTState appendRecitals(List<JCTRecital> recitals) {
-        JCTState withRecitals = new JCTState(projectName, this.employer, this.contractor);
-        withRecitals.recitals.addAll(recitals);
-        return withRecitals;
-    }
 
 //    @NotNull
 //    @Override
