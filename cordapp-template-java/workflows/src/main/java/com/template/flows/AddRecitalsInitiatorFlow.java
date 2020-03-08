@@ -3,6 +3,7 @@ package com.template.flows;
 import co.paralleluniverse.fibers.Suspendable;
 import com.google.common.collect.ImmutableList;
 import com.template.contracts.JCTContract;
+import com.template.contracts.JCTRecital;
 import com.template.states.JCTState;
 import net.corda.core.contracts.Command;
 import net.corda.core.contracts.StateAndRef;
@@ -15,7 +16,6 @@ import net.corda.core.transactions.TransactionBuilder;
 import net.corda.core.utilities.ProgressTracker;
 
 import java.security.PublicKey;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 public class AddRecitalsInitiatorFlow extends JCTBaseFlow {
     private final UniqueIdentifier linearId;
     private final String projectName;
-    private final List<Integer> recitals;
+    private final List<JCTRecital> recitals;
     private final List<Party> employer;
     private final List<Party> contractor;
 
@@ -37,7 +37,7 @@ public class AddRecitalsInitiatorFlow extends JCTBaseFlow {
      */
     private final ProgressTracker progressTracker = new ProgressTracker();
 
-    public AddRecitalsInitiatorFlow(UniqueIdentifier linearId, String projectName, List<Integer> recitals, List<Party> employer, List<Party> contractor) {
+    public AddRecitalsInitiatorFlow(UniqueIdentifier linearId, String projectName, List<JCTRecital> recitals, List<Party> employer, List<Party> contractor) {
         this.linearId = linearId;
         this.projectName = projectName;
         this.recitals = recitals;

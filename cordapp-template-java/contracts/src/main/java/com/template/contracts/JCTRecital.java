@@ -6,19 +6,32 @@ import net.corda.core.contracts.CommandData;
 import net.corda.core.contracts.Contract;
 import net.corda.core.contracts.TypeOnlyCommandData;
 import net.corda.core.transactions.LedgerTransaction;
+import sun.jvm.hotspot.oops.Instance;
 
 // ************
 // * Contract *
 // ************
 public abstract class JCTRecital implements Contract {
+    private final String recitalDesc;
+    private final String recitalStatus;
+    private final Instance issuanceDate;
+    // TODO - extend recitals to have conditions as children?
+    //private final List<JCTCondition> conditions;
+
+    protected JCTRecital(String recitalDesc, String recitalStatus, Instance issuanceDate) {
+        this.recitalDesc = recitalDesc;
+        this.recitalStatus = recitalStatus;
+        this.issuanceDate = issuanceDate;
+    }
+
     // This is used to identify our contract when building a transaction.
 
     // Create command used to create the contract
     public interface Commands extends CommandData {
         class Create extends TypeOnlyCommandData implements Commands {}
-        class AppendRecitals extends TypeOnlyCommandData implements Commands {}
-    }
+        class InitiateModificationVote extends TypeOnlyCommandData implements Commands {}
 
+    }
 
     // A transaction is valid if the verify() function of the contract of all the transaction's input and output states
     // does not throw an exception.
@@ -38,7 +51,7 @@ public abstract class JCTRecital implements Contract {
         }
 
         // Vote on the JCTCondition
-        if (command instanceof Commands.AppendRecitals) {
+        if (command instanceof Commands.InitiateModificationVote) {
             voteOnCondition(tx);
         }
     }

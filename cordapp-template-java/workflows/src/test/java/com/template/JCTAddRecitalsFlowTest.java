@@ -1,11 +1,13 @@
 package com.template;
 
 import com.google.common.collect.ImmutableList;
+import com.template.contracts.JCTContract;
 import com.template.flows.JCTFlow;
 import com.template.flows.JCTFlowResponder;
 import com.template.states.JCTState;
 import net.corda.core.concurrent.CordaFuture;
 import net.corda.core.contracts.TransactionVerificationException;
+import net.corda.core.contracts.UniqueIdentifier;
 import net.corda.core.identity.CordaX500Name;
 import net.corda.core.identity.Party;
 import net.corda.core.transactions.SignedTransaction;
@@ -21,6 +23,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
@@ -74,14 +77,14 @@ public class JCTAddRecitalsFlowTest {
         return future.get();
     }
 
-//    protected SignedTransaction addRecitals(UniqueIdentifier linearId,
-//                                                   StartedMockNode lender,
-//                                                   StartedMockNode newLender,
-//                                                   Boolean anonymous) throws InterruptedException, ExecutionException {
-//        Party newLenderIdentity = chooseIdentity(newLender.getInfo());
-//        TransferObligation.Initiator flow = new TransferObligation.Initiator(linearId, newLenderIdentity, anonymous);
-//        return lender.startFlow(flow).get();
-//    }
+    protected SignedTransaction addRecitals(UniqueIdentifier linearId,
+                                            StartedMockNode lender,
+                                            StartedMockNode newLender,
+                                            Boolean anonymous) throws Exception {
+        SignedTransaction initialisedJCT = createJCT();
+        JCTContract.Commands.Create flow = new JCTContract.Commands.Create();
+        .startFlow(flow).get();
+    }
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
