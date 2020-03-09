@@ -6,7 +6,8 @@ import net.corda.core.contracts.CommandData;
 import net.corda.core.contracts.Contract;
 import net.corda.core.contracts.TypeOnlyCommandData;
 import net.corda.core.transactions.LedgerTransaction;
-import sun.jvm.hotspot.oops.Instance;
+
+import java.time.Instant;
 
 // ************
 // * Contract *
@@ -14,11 +15,11 @@ import sun.jvm.hotspot.oops.Instance;
 public abstract class JCTRecital implements Contract {
     private final String recitalDesc;
     private final String recitalStatus;
-    private final Instance issuanceDate;
+    private final Instant issuanceDate;
     // TODO - extend recitals to have conditions as children?
     //private final List<JCTCondition> conditions;
 
-    protected JCTRecital(String recitalDesc, String recitalStatus, Instance issuanceDate) {
+    protected JCTRecital(String recitalDesc, String recitalStatus, Instant issuanceDate) {
         this.recitalDesc = recitalDesc;
         this.recitalStatus = recitalStatus;
         this.issuanceDate = issuanceDate;

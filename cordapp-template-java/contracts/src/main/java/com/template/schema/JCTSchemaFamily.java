@@ -7,5 +7,4 @@ package com.template.schema;
  * It allows the SchemaService to select the appropriate version of the schema if it has evolved over time.
  */
 
-public class JCTSchemaFamily {
-}
+public class JCTSchemaFamily { }

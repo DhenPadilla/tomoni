@@ -3,8 +3,10 @@ package com.template.contracts.clauses;
 import com.template.contracts.JCTRecital;
 import net.corda.core.transactions.LedgerTransaction;
 
+import java.time.Instant;
+
 public class JCTThirdRecital extends JCTRecital {
-    public JCTThirdRecital(String recitalDesc, String recitalStatus) {
+    public JCTThirdRecital(String recitalDesc, String recitalStatus, Instant issuanceDate) {
         super(recitalDesc, recitalStatus, issuanceDate);
     }
 

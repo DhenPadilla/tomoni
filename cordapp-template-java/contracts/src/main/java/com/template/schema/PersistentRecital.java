@@ -8,10 +8,10 @@ import java.util.UUID;
 
 
 /**
- * JPA Entity for saving claim details to the database table
+ * JPA Entity for saving recital details to the database table
  */
 @Entity
-@Table(name = "CLAIM_DETAIL")
+@Table(name = "RECITAL_DETAIL")
 public class PersistentRecital {
 
     @Id private final UUID id;

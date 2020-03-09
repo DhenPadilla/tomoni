@@ -2,6 +2,8 @@ package com.template.states;
 
 import com.google.common.collect.ImmutableList;
 import com.template.contracts.JCTContract;
+import com.template.contracts.JCTRecital;
+import com.template.contracts.JCTRecitalFactory;
 import com.template.schema.PersistentJCT;
 import com.template.schema.PersistentRecital;
 import com.template.schema.RecitalSchemaV1;
@@ -28,40 +30,46 @@ public class JCTQueryableState implements QueryableState {
     private final String projectName;
     private final List<Party> employer;
     private final List<Party> contractor;
+    private List<Integer> recitalIndices = new ArrayList<>();
     private final List<JCTRecitalState> recitals = new ArrayList<>();
 
     @ConstructorForDeserialization
-    public JCTQueryableState(UniqueIdentifier linearId, String projectName, List<Party> employer, List<Party> contractor) {
+    public JCTQueryableState(UniqueIdentifier linearId, String projectName, List<Party> employer, List<Party> contractor, List<Integer> recitalIndices) {
         this.linearId = linearId;
         this.projectName = projectName;
         this.employer = employer;
         this.contractor = contractor;
+        this.recitalIndices = recitalIndices;
     }
 
-    public JCTQueryableState(String projectName, List<Party> employer, List<Party> contractor) {
+    public JCTQueryableState(String projectName, List<Party> employer, List<Party> contractor, List<Integer> recitalIndices) {
         this.linearId = new UniqueIdentifier();
         this.projectName = projectName;
         this.employer = employer;
         this.contractor = contractor;
+        this.recitalIndices = recitalIndices;
+        this.recitals.addAll(getRecitalsFromIndices(recitalIndices));
     }
+
+    private List<JCTRecitalState> getRecitalsFromIndices(List<Integer> indices) {
+        List<JCTRecitalState> recitals = new ArrayList<>();
+        JCTRecitalFactory fac = new JCTRecitalFactory();
+        for(Integer recital : indices) {
+            recitals.add(fac.getRecitalState(recital));
+        }
+        return recitals;
+    };
 
     // JCT-based state
     public JCTQueryableState copy() {
-        return new JCTQueryableState(this.projectName, this.employer, this.contractor);
+        return new JCTQueryableState(this.projectName, this.employer, this.contractor, this.recitalIndices);
     }
 
     public JCTQueryableState signDate(Instant issuanceDate) {
-        JCTQueryableState stateWithSignedDate = new JCTQueryableState(this.projectName, this.employer, this.contractor);
+        JCTQueryableState stateWithSignedDate = new JCTQueryableState(this.projectName, this.employer, this.contractor, this.recitalIndices);
         stateWithSignedDate.issuanceDate = issuanceDate;
         return stateWithSignedDate;
     }
-
-//    public JCTQueryableState appendRecitals(List<Integer> recitalIndexes) {
-//        List<JCTRecitalState> recitals = RecitalMap.getRecitalsFor(recitalIndexes);
-//        JCTQueryableState withRecitals = new JCTQueryableState(projectName, this.employer, this.contractor);
-//        withRecitals.recitals.addAll(recitals);
-//        return withRecitals;
-//    }
 
     public String getProjectName() { return projectName; }
 
@@ -72,6 +80,8 @@ public class JCTQueryableState implements QueryableState {
     public List<Party> getContractor() {
         return contractor;
     }
+
+    public List<JCTRecitalState> getRecitals() { return recitals; }
 
     @NotNull
     @Override
@@ -93,20 +103,20 @@ public class JCTQueryableState implements QueryableState {
     @NotNull
     @Override
     public PersistentJCT generateMappedObject(@NotNull MappedSchema schema) {
-
         // Create list of PersistentRecital entities against every Recital object.
         List<PersistentRecital> persistentRecitals = new ArrayList<>();
-        if(recitals != null && recitals.size() > 0) {
-            for(JCTRecitalState recital: recitals){
-                PersistentRecital persistentClaim = new PersistentRecital(
-                        recital.getRecitalDesc(),
-                        recital.getRecitalStatus(),
-                        recital.getIssuanceDate()
-                );
-                persistentRecitals.add(persistentClaim);
-            }
-        }
         if(schema instanceof RecitalSchemaV1) {
+            if(recitals.size() > 0) {
+                for(JCTRecitalState recital: recitals){
+                    PersistentRecital persistentClaim = new PersistentRecital(
+                            recital.getRecitalDesc(),
+                            recital.getRecitalStatus(),
+                            recital.getIssuanceDate()
+                    );
+                    persistentRecitals.add(persistentClaim);
+                }
+            }
+
             return new PersistentJCT(
                     this.projectName,
                     this.employer,

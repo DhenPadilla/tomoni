@@ -61,4 +61,8 @@ public class PersistentJCT extends PersistentState implements Serializable {
     public Instant getIssuanceDate() {
         return issuanceDate;
     }
+
+    public List<PersistentRecital> getRecitals() {
+        return recitals;
+    }
 }

@@ -2,8 +2,10 @@ package com.template.contracts;
 
 import com.google.common.collect.ImmutableMap;
 import com.template.contracts.clauses.*;
+import com.template.states.clauses.JCTRecitalState;
 import net.corda.core.transactions.LedgerTransaction;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,21 +30,23 @@ public class JCTRecitalFactory {
                     );
 
     public JCTRecital getRecital(Integer recitalNo) {
-        if(recitalNo == null){
+        if(recitalNo == null) {
             return null;
         }
         if(recitalNo == 1) {
-            return new JCTFirstRecital(recitalMap.get(1), "CREATED");
-        } else if(recitalNo == 2) {
-            return new JCTSecondRecital(recitalMap.get(2), "CREATED");
-        } else if(recitalNo == 3) {
-            return new JCTThirdRecital(recitalMap.get(3), "CREATED");
+            return new JCTFirstRecital(recitalMap.get(1), "CREATED", Instant.now());
+        }
+        else if(recitalNo == 2) {
+            return new JCTSecondRecital(recitalMap.get(2), "CREATED", Instant.now());
+        }
+        else if(recitalNo == 3) {
+            return new JCTThirdRecital(recitalMap.get(3), "CREATED", Instant.now());
         }
         else if(recitalNo == 4) {
-            return new JCTFourthRecital(recitalMap.get(4), "CREATED");
+            return new JCTFourthRecital(recitalMap.get(4), "CREATED", Instant.now());
         }
         else if(recitalNo == 5) {
-            return new JCTFifthRecital(recitalMap.get(5), "CREATED");
+            return new JCTFifthRecital(recitalMap.get(5), "CREATED", Instant.now());
         }
         // TODO - MAKE MORE RECITALS
 //        else if(recitalNo == 6) {
@@ -52,6 +56,28 @@ public class JCTRecitalFactory {
 //            return new JCTSeventhRecital();
 //        }
 
+        return null;
+    }
+
+    public JCTRecitalState getRecitalState(Integer recitalNo) {
+        if(recitalNo == null) {
+            return null;
+        }
+        if(recitalNo == 1) {
+            return new JCTRecitalState(recitalMap.get(1), "CREATED", Instant.now());
+        }
+        else if(recitalNo == 2) {
+            return new JCTRecitalState(recitalMap.get(2), "CREATED", Instant.now());
+        }
+        else if(recitalNo == 3) {
+            return new JCTRecitalState(recitalMap.get(3), "CREATED", Instant.now());
+        }
+        else if(recitalNo == 4) {
+            return new JCTRecitalState(recitalMap.get(4), "CREATED", Instant.now());
+        }
+        else if(recitalNo == 5) {
+            return new JCTRecitalState(recitalMap.get(5), "CREATED", Instant.now());
+        }
         return null;
     }
 }
