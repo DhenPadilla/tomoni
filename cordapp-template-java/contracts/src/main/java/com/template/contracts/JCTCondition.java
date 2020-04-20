@@ -2,19 +2,10 @@ package com.template.contracts;
 
 // Add these imports:
 
-import com.template.states.IOUState;
 import net.corda.core.contracts.CommandData;
-import net.corda.core.contracts.CommandWithParties;
 import net.corda.core.contracts.Contract;
 import net.corda.core.contracts.TypeOnlyCommandData;
-import net.corda.core.identity.Party;
 import net.corda.core.transactions.LedgerTransaction;
-
-import java.security.PublicKey;
-import java.util.Arrays;
-import java.util.List;
-
-import static net.corda.core.contracts.ContractsDSL.requireSingleCommand;
 
 // ************
 // * Contract *

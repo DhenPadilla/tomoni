@@ -1,12 +1,9 @@
 package com.template.contracts;
 
 // Necessary imports:
-import com.template.states.IOUState;
 import com.template.states.JCTMasterState;
-import net.corda.core.contracts.Command;
 import net.corda.core.contracts.CommandWithParties;
 import net.corda.core.crypto.SecureHash;
-import net.corda.core.identity.AbstractParty;
 import net.corda.core.identity.Party;
 
 import java.security.PublicKey;
@@ -17,7 +14,6 @@ import static net.corda.core.contracts.ContractsDSL.requireSingleCommand;
 import net.corda.core.contracts.CommandData;
 import net.corda.core.contracts.Contract;
 import net.corda.core.transactions.LedgerTransaction;
-import org.jetbrains.annotations.NotNull;
 
 public class JCTMasterContract implements Contract {
     public SecureHash getLegalContractReference() {
