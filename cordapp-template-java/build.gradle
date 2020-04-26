@@ -81,6 +81,8 @@ dependencies {
     cordaCompile "$corda_release_group:corda-node-api:$corda_release_version"
     cordaRuntime "$corda_release_group:corda:$corda_release_version"
 
+    testCompile "net.corda:corda-test-utils:$corda_release_version"
+
     // CorDapp dependencies.
     cordapp project(":workflows")
     cordapp project(":contracts")
@@ -96,6 +98,20 @@ cordapp {
         vendor "Corda Open Source"
         targetPlatformVersion corda_platform_version
         minimumPlatformVersion corda_platform_version
+    }
+}
+
+task ganache {
+    subprojects {
+        if (it.project.name != "clients") {
+            dependsOn jar
+            doLast {
+                copy {
+                    from "${buildDir}/libs"
+                    into "${rootDir}/build/libs"
+                }
+            }
+        }
     }
 }
 
