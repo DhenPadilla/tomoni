@@ -7,7 +7,7 @@ public enum JCTJobStatus {
     PENDING,
     IN_PROGRESS,
     COMPLETED,
-    ACCEPTED,
+    CONFIRMED,
     PAID,
     ON_ACCOUNT_PAYMENT
 }

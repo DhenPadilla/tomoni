@@ -13,6 +13,7 @@ import net.corda.core.identity.Party;
 import net.corda.core.transactions.LedgerTransaction;
 
 import java.security.PublicKey;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -41,15 +42,45 @@ public class ScheduleEscrowContract implements Contract {
                 this.jobIx = jobIx;
             }
         }
-        class RejectJob extends TypeOnlyCommandData implements Commands {
+        class ConfirmJobComplete extends TypeOnlyCommandData implements Commands {
             private Integer jobIx;
-            public RejectJob(Integer jobIx) {
+            public ConfirmJobComplete(Integer jobIx) {
                 this.jobIx = jobIx;
             }
         }
-        class AcceptJob extends TypeOnlyCommandData implements Commands {
+        class RequestAmountModification extends TypeOnlyCommandData implements Commands {
             private Integer jobIx;
-            public AcceptJob(Integer jobIx) {
+            private Double amount;
+            public RequestAmountModification(Integer jobIx, Double amount) {
+                this.jobIx = jobIx;
+                this.amount = amount;
+            }
+        }
+        class AcceptAmountModification extends TypeOnlyCommandData implements Commands {
+            private Integer jobIx;
+            public AcceptAmountModification(Integer jobIx, Double amount) {
+                this.jobIx = jobIx;
+            }
+        }
+        class RequestExpectedDateModification extends TypeOnlyCommandData implements Commands {
+            private Integer jobIx;
+            private LocalDate delayToDate;
+            public RequestExpectedDateModification(Integer jobIx, LocalDate delayToDate) {
+                this.jobIx = jobIx;
+                this.delayToDate = delayToDate;
+            }
+        }
+        class AcceptExpectedDateModification extends TypeOnlyCommandData implements Commands {
+            private Integer jobIx;
+            private LocalDate delayToDate;
+            public AcceptExpectedDateModification(Integer jobIx, LocalDate delayToDate) {
+                this.jobIx = jobIx;
+                this.delayToDate = delayToDate;
+            }
+        }
+        class RejectJob extends TypeOnlyCommandData implements Commands {
+            private Integer jobIx;
+            public RejectJob(Integer jobIx) {
                 this.jobIx = jobIx;
             }
         }
@@ -195,6 +226,48 @@ public class ScheduleEscrowContract implements Contract {
                     inputModifiedJob.copyBuilder().withStatus(JCTJobStatus.COMPLETED).build().equalsExcept(outputModifiedJob, "Description"));
             require.using("The modified Job's description must include 'Quality Surveyor Link'.",
                     outputModifiedJob.getDescription().contains("Quality Surveyor Link"));
+
+            List<JCTJob> otherInputtedJobs = new ArrayList<>(jobInputs.getJobs());
+            otherInputtedJobs.remove(jobIndex);
+            List<JCTJob> otherOutputJobs = new ArrayList<>(jobOutputs.getJobs());
+            otherOutputJobs.remove(jobIndex);
+
+            require.using("All other jobs mustn't be changed",
+                    IntStream.range(0, otherInputtedJobs.size()).allMatch(idx ->
+                            (otherInputtedJobs.get(idx).equals(otherOutputJobs.get(idx)))
+                    ));
+            require.using("At least a single contractor should be a required signer.",
+                    contractors.stream().anyMatch(contractor ->
+                            command.getSigners().contains(contractor.getOwningKey())
+                    ));
+
+            return null;
+        });
+    }
+
+    private void confirmJobCompleteWithIndex(LedgerTransaction tx) {
+        final CommandWithParties<Commands.ConfirmJobComplete> command = requireSingleCommand(tx.getCommands(), Commands.ConfirmJobComplete.class);
+        requireThat(require -> {
+            require.using("One JobState input should be consumed.", tx.getInputs().size() == 1);
+            require.using("One JobState output should be produced.", tx.getOutputs().size() == 1);
+
+            ScheduleEscrowState jobInputs =  tx.inputsOfType(ScheduleEscrowState.class).get(0);
+            ScheduleEscrowState jobOutputs =  tx.outputsOfType(ScheduleEscrowState.class).get(0);
+            int jobIndex = new Commands.StartJob(command.getValue().jobIx).jobIx;
+            JCTJob inputModifiedJob = jobInputs.getJobs().get(jobIndex);
+            JCTJob outputModifiedJob = jobOutputs.getJobs().get(jobIndex);
+
+            // Signers:
+            final List<Party> contractors = jobOutputs.getContractors();
+
+            require.using("The modified Job should have an input status of IN_PROGRESS.",
+                    inputModifiedJob.getStatus() == JCTJobStatus.COMPLETED);
+            require.using("The Job should have an output status of COMPLETED.",
+                    outputModifiedJob.getStatus() == JCTJobStatus.CONFIRMED);
+            require.using("The updated Job must not have a modified Job amount",
+                    inputModifiedJob.copyBuilder().withStatus(JCTJobStatus.CONFIRMED).build().equals(outputModifiedJob));
+//            require.using("The modified Job's description must include 'Quality Surveyor Link'.",
+//                    outputModifiedJob.getDescription().contains("Quality Surveyor Link"));
 
             List<JCTJob> otherInputtedJobs = new ArrayList<>(jobInputs.getJobs());
             otherInputtedJobs.remove(jobIndex);
