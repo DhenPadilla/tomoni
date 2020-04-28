@@ -112,7 +112,7 @@ public class ScheduleEscrowContract implements Contract {
         // USING AN ATTACHMENT THAT IS WITHIN 'VARIABLES CLAUSE'
         if (command instanceof Commands.RequestExpectedDateModification) { requestDateAmendment(tx); }
 
-        if (command instanceof Commands.RequestExpectedDateModification) { requestAmountAmendment(tx); }
+        if (command instanceof Commands.RequestAmountModification) { requestAmountAmendment(tx); }
     }
 
 
@@ -469,7 +469,7 @@ public class ScheduleEscrowContract implements Contract {
             require.using("Expected End Date of job should be modified",
                     !inputModifiedJob.getExpectedEndDate().equals(outputModifiedJob.getExpectedEndDate()));
             require.using("Should Modify Expected End Date Correctly",
-                    inputModifiedJob.copyBuilder().withExpectedEndDate(extendedDate).build().equals(outputModifiedJob));
+                    inputModifiedJob.copyBuilder().withExpectedEndDate(extendedDate).build().equalsExcept(outputModifiedJob, "Status"));
             List<JCTJob> otherInputtedJobs = new ArrayList<>(jobInput.getJobs());
             otherInputtedJobs.remove(jobIndex);
             List<JCTJob> otherOutputJobs = new ArrayList<>(jobOutput.getJobs());

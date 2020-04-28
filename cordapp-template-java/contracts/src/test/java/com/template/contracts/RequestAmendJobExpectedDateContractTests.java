@@ -61,12 +61,12 @@ public class RequestAmendJobExpectedDateContractTests {
     }
 
     @Test
-    public void confirmAmendJobShouldWork() {
+    public void confirmAmendDateShouldWork() {
         ReportState inputReportState = getReportState(ReportStatus.UNSEEN);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
-        LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate().plusMonths(3);
+        LocalDate extendedDate = job1.getExpectedEndDate().plusMonths(3);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.command(requiredSigners, new ReportContract.Commands.AddReportDocument());
@@ -311,11 +311,13 @@ public class RequestAmendJobExpectedDateContractTests {
     @Test
     public void atLeastSingleContractorMustBeIncludedInTransaction() {
         List<PublicKey> employerKeys = Arrays.asList(employers.get(0).getOwningKey(), employers.get(1).getOwningKey());
-        ReportState inputReportState = new ReportState(ReportStatus.UNSEEN, "J1", Instant.now(), "Lorem ipsum", contractors);
-        ReportState outputReportState = new ReportState(ReportStatus.PROCESSED, "J1", Instant.now(), "Lorem ipsum", contractors);
+        ReportState inputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
+
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate().plusMonths(3);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputReportState);
