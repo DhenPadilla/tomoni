@@ -34,7 +34,7 @@ public class RequestAmendJobExpectedDateContractTests {
     JCTJob job1 = jobFactory.getJobExamples().get(0).copyBuilder().withStatus(JCTJobStatus.IN_PROGRESS).build();
     JCTJob job2 = jobFactory.getJobExamples().get(1).copyBuilder().withStatus(JCTJobStatus.IN_PROGRESS).build();
     JCTJob job1Output = job1.copyBuilder()
-            .withStatus(JCTJobStatus.IN_PROGRESS)
+            .withStatus(JCTJobStatus.DATE_AMENDMENT_REQUESTED)
             .withExpectedEndDate(job1.getExpectedEndDate().plusMonths(3))
             .build();
 
@@ -226,9 +226,30 @@ public class RequestAmendJobExpectedDateContractTests {
     }
 
     @Test
-    public void jobToBeAmendedMustNotChangeStatus() {
-        ReportState inputReportState = new ReportState(ReportStatus.UNSEEN, "J1", Instant.now(), "Lorem ipsum", contractors);
-        ReportState outputReportState = new ReportState(ReportStatus.PROCESSED, "J1", Instant.now(), "Lorem ipsum", contractors);
+    public void jobInputShouldHaveStatusINPROGRESS() {
+        ReportState inputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
+        ScheduleEscrowState inputState = getScheduleEscrowState(null);
+        LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate().plusMonths(3);
+        List<JCTJob> jobs = Arrays.asList(job1.copyBuilder().withStatus(JCTJobStatus.COMPLETED).build(), job2);
+        ScheduleEscrowState outputState = inputState.copyWithNewJobs(jobs);
+        ledger(ledgerServices, l -> {
+            l.transaction(tx -> {
+                tx.input(ReportContract.ID, inputReportState);
+                tx.input(ScheduleEscrowContract.ID, outputState);
+                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.output(ReportContract.ID, outputReportState);
+                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.RequestExpectedDateModification(0, extendedDate));
+                return tx.failsWith("Input Job should have status: IN_PROGRESS");
+            });
+            return Unit.INSTANCE;
+        });
+    }
+
+    @Test
+    public void jobOutputShouldHaveStatusDATEREQUESTED() {
+        ReportState inputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate().plusMonths(3);
         List<JCTJob> jobs = Arrays.asList(job1.copyBuilder().withStatus(JCTJobStatus.COMPLETED).build(), job2);
@@ -240,7 +261,7 @@ public class RequestAmendJobExpectedDateContractTests {
                 tx.output(ScheduleEscrowContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
                 tx.command(requiredSigners, new ScheduleEscrowContract.Commands.RequestExpectedDateModification(0, extendedDate));
-                return tx.failsWith("Job amended should not change status");
+                return tx.failsWith("Output Job should have status: DATE_AMENDMENT_REQUESTED");
             });
             return Unit.INSTANCE;
         });
@@ -252,7 +273,7 @@ public class RequestAmendJobExpectedDateContractTests {
         ReportState outputReportState = new ReportState(ReportStatus.PROCESSED, "J1", Instant.now(), "Lorem ipsum", contractors);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate();
-        List<JCTJob> jobs = Arrays.asList(job1.copyBuilder().withStatus(JCTJobStatus.IN_PROGRESS).build(), job2);
+        List<JCTJob> jobs = Arrays.asList(job1Output.copyBuilder().withExpectedEndDate(extendedDate).build(), job2);
         ScheduleEscrowState outputState = inputState.copyWithNewJobs(jobs);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
