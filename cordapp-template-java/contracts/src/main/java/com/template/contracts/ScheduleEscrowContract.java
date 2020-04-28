@@ -48,6 +48,12 @@ public class ScheduleEscrowContract implements Contract {
                 this.jobIx = jobIx;
             }
         }
+        class ContinueJob extends TypeOnlyCommandData implements Commands {
+            private Integer jobIx;
+            public ContinueJob(Integer jobIx) {
+                this.jobIx = jobIx;
+            }
+        }
         class RequestAmountModification extends TypeOnlyCommandData implements Commands {
             private Integer jobIx;
             private Double amount;
@@ -78,12 +84,6 @@ public class ScheduleEscrowContract implements Contract {
                 this.delayToDate = delayToDate;
             }
         }
-        class RejectJob extends TypeOnlyCommandData implements Commands {
-            private Integer jobIx;
-            public RejectJob(Integer jobIx) {
-                this.jobIx = jobIx;
-            }
-        }
         class SendPayment extends TypeOnlyCommandData implements Commands {
             private Integer jobIx;
             public SendPayment(Integer jobIx) {
@@ -98,28 +98,32 @@ public class ScheduleEscrowContract implements Contract {
     public void verify(LedgerTransaction tx) throws IllegalArgumentException {
         // Tests whether there exists a *single* 'Create'
         // command is present within the transaction/contract
-
         final Commands command = tx.findCommand(Commands.class, cmd -> true).getValue();
 
         // CREATE THE ESCROW SCHEDULE CONTRACT
-        if (command instanceof Commands.CreateSchedule) {
-            verifyCreate(tx);
-        }
+        if (command instanceof Commands.CreateSchedule) { verifyCreate(tx); }
 
         // START A JOB ON THE SCHEDULE
-        if (command instanceof Commands.StartJob) {
-            startJobWithIndex(tx);
-        }
+        if (command instanceof Commands.StartJob) { startJobWithIndex(tx); }
 
         // CONTRACTOR DECLARES A STARTED JOB TO BE COMPLETE
-        if (command instanceof Commands.DeclareJobComplete) {
-            declareCompleteWithIndex(tx);
-        }
+        if (command instanceof Commands.DeclareJobComplete) { declareCompleteWithIndex(tx); }
+
+        // EMPLOYERS SIGN-OFF A JOB MARKED AS COMPLETE
+        if (command instanceof Commands.ConfirmJobComplete) { confirmJobCompleteWithIndex(tx); }
+
+        // EMPLOYERS REJECT A JOB MARKED AS COMPLETE
+        if (command instanceof Commands.ContinueJob) { orderContinuationOfJobWithIndex(tx); }
+
+        // CONTRACTORS REQUEST CONTRACT AMOUNT AMENDMENT,
+        // USING AN ATTACHMENT THAT IS WITHIN 'VARIABLES CLAUSE'
     }
 
     private List<PublicKey> getOwningKeys(List<Party> parties) {
         List<PublicKey> keys = new ArrayList<PublicKey>();
-        parties.forEach((party) -> keys.add(party.getOwningKey()));
+        if(parties != null) {
+            parties.forEach((party) -> keys.add(party.getOwningKey()));
+        }
         return keys;
     }
 
@@ -211,12 +215,12 @@ public class ScheduleEscrowContract implements Contract {
 
             ScheduleEscrowState jobInputs =  tx.inputsOfType(ScheduleEscrowState.class).get(0);
             ScheduleEscrowState jobOutputs =  tx.outputsOfType(ScheduleEscrowState.class).get(0);
-            int jobIndex = new Commands.StartJob(command.getValue().jobIx).jobIx;
+            int jobIndex = new Commands.DeclareJobComplete(command.getValue().jobIx).jobIx;
             JCTJob inputModifiedJob = jobInputs.getJobs().get(jobIndex);
             JCTJob outputModifiedJob = jobOutputs.getJobs().get(jobIndex);
 
             // Signers:
-            final List<Party> contractors = jobOutputs.getContractors();
+            final List<Party> expectedSigners = jobInputs.getContractors();
 
             require.using("The modified Job should have an input status of IN_PROGRESS.",
                     inputModifiedJob.getStatus() == JCTJobStatus.IN_PROGRESS);
@@ -237,8 +241,8 @@ public class ScheduleEscrowContract implements Contract {
                             (otherInputtedJobs.get(idx).equals(otherOutputJobs.get(idx)))
                     ));
             require.using("At least a single contractor should be a required signer.",
-                    contractors.stream().anyMatch(contractor ->
-                            command.getSigners().contains(contractor.getOwningKey())
+                    expectedSigners.stream().anyMatch(signer ->
+                            command.getSigners().contains(signer.getOwningKey())
                     ));
 
             return null;
@@ -253,21 +257,34 @@ public class ScheduleEscrowContract implements Contract {
 
             ScheduleEscrowState jobInputs =  tx.inputsOfType(ScheduleEscrowState.class).get(0);
             ScheduleEscrowState jobOutputs =  tx.outputsOfType(ScheduleEscrowState.class).get(0);
-            int jobIndex = new Commands.StartJob(command.getValue().jobIx).jobIx;
+            int jobIndex = new Commands.ConfirmJobComplete(command.getValue().jobIx).jobIx;
             JCTJob inputModifiedJob = jobInputs.getJobs().get(jobIndex);
             JCTJob outputModifiedJob = jobOutputs.getJobs().get(jobIndex);
 
             // Signers:
-            final List<Party> contractors = jobOutputs.getContractors();
+            final List<Party> contractors = jobInputs.getContractors();
+            final List<Party> employers = jobOutputs.getEmployers();
 
-            require.using("The modified Job should have an input status of IN_PROGRESS.",
+            final List<PublicKey> expectedInputSigners = new ArrayList<>();
+            final List<PublicKey> expectedOutputSigners = new ArrayList<>();
+
+            expectedInputSigners.addAll(getOwningKeys(contractors));
+            expectedOutputSigners.addAll(getOwningKeys(employers));
+
+            require.using("Input state must be contractor-signed.",
+                    !expectedInputSigners.isEmpty());
+
+            require.using("Output state must involve employer signatures.",
+                    !expectedOutputSigners.isEmpty());
+
+            require.using("The modified Job should have an input status of COMPLETED.",
                     inputModifiedJob.getStatus() == JCTJobStatus.COMPLETED);
-            require.using("The Job should have an output status of COMPLETED.",
+            require.using("The Job should have an output status of CONFIRMED.",
                     outputModifiedJob.getStatus() == JCTJobStatus.CONFIRMED);
+
             require.using("The updated Job must not have a modified Job amount",
                     inputModifiedJob.copyBuilder().withStatus(JCTJobStatus.CONFIRMED).build().equals(outputModifiedJob));
-//            require.using("The modified Job's description must include 'Quality Surveyor Link'.",
-//                    outputModifiedJob.getDescription().contains("Quality Surveyor Link"));
+
 
             List<JCTJob> otherInputtedJobs = new ArrayList<>(jobInputs.getJobs());
             otherInputtedJobs.remove(jobIndex);
@@ -278,10 +295,65 @@ public class ScheduleEscrowContract implements Contract {
                     IntStream.range(0, otherInputtedJobs.size()).allMatch(idx ->
                             (otherInputtedJobs.get(idx).equals(otherOutputJobs.get(idx)))
                     ));
-            require.using("At least a single contractor should be a required signer.",
-                    contractors.stream().anyMatch(contractor ->
-                            command.getSigners().contains(contractor.getOwningKey())
+            require.using("All employers should be required signers.",
+                    command.getSigners().containsAll(expectedOutputSigners));
+            require.using("All signers must be authorised via previous transactions.",
+                    command.getSigners().equals(expectedOutputSigners));
+
+            return null;
+        });
+    }
+
+    private void orderContinuationOfJobWithIndex(LedgerTransaction tx) {
+        final CommandWithParties<Commands.ContinueJob> command = requireSingleCommand(tx.getCommands(), Commands.ContinueJob.class);
+        requireThat(require -> {
+            require.using("One JobState input should be consumed.", tx.getInputs().size() == 1);
+            require.using("One JobState output should be produced.", tx.getOutputs().size() == 1);
+
+            ScheduleEscrowState jobInputs =  tx.inputsOfType(ScheduleEscrowState.class).get(0);
+            ScheduleEscrowState jobOutputs =  tx.outputsOfType(ScheduleEscrowState.class).get(0);
+            int jobIndex = new Commands.ContinueJob(command.getValue().jobIx).jobIx;
+            JCTJob inputModifiedJob = jobInputs.getJobs().get(jobIndex);
+            JCTJob outputModifiedJob = jobOutputs.getJobs().get(jobIndex);
+
+            // Signers:
+            final List<Party> contractors = jobInputs.getContractors();
+            final List<Party> employers = jobOutputs.getEmployers();
+
+            final List<PublicKey> expectedInputSigners = new ArrayList<>();
+            final List<PublicKey> expectedOutputSigners = new ArrayList<>();
+
+            expectedInputSigners.addAll(getOwningKeys(contractors));
+            expectedOutputSigners.addAll(getOwningKeys(employers));
+
+            require.using("Input state must include contractors.",
+                    !expectedInputSigners.isEmpty());
+
+            require.using("Output state must involve employer signatures.",
+                    !expectedOutputSigners.isEmpty());
+
+            require.using("The modified Job should have an input status of COMPLETED.",
+                    inputModifiedJob.getStatus() == JCTJobStatus.COMPLETED);
+            require.using("The Job should have an output status of IN_PROGRESS.",
+                    outputModifiedJob.getStatus() == JCTJobStatus.IN_PROGRESS);
+
+            require.using("The updated Job must not have a modified Job amount",
+                    inputModifiedJob.copyBuilder().withStatus(JCTJobStatus.IN_PROGRESS).build().equals(outputModifiedJob));
+
+
+            List<JCTJob> otherInputtedJobs = new ArrayList<>(jobInputs.getJobs());
+            otherInputtedJobs.remove(jobIndex);
+            List<JCTJob> otherOutputJobs = new ArrayList<>(jobOutputs.getJobs());
+            otherOutputJobs.remove(jobIndex);
+
+            require.using("All other jobs mustn't be changed",
+                    IntStream.range(0, otherInputtedJobs.size()).allMatch(idx ->
+                            (otherInputtedJobs.get(idx).equals(otherOutputJobs.get(idx)))
                     ));
+            require.using("All employers should be required signers.",
+                    command.getSigners().containsAll(expectedOutputSigners));
+            require.using("All signers must be authorised via previous transactions.",
+                    command.getSigners().equals(expectedOutputSigners));
 
             return null;
         });
