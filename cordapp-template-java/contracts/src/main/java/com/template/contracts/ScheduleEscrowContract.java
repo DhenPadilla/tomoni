@@ -2,13 +2,8 @@ package com.template.contracts;
 
 // Add these imports:
 
-import com.template.states.JCTJob;
-import com.template.states.JCTJobStatus;
-import com.template.states.ScheduleEscrowState;
-import net.corda.core.contracts.CommandData;
-import net.corda.core.contracts.CommandWithParties;
-import net.corda.core.contracts.Contract;
-import net.corda.core.contracts.TypeOnlyCommandData;
+import com.template.states.*;
+import net.corda.core.contracts.*;
 import net.corda.core.identity.Party;
 import net.corda.core.transactions.LedgerTransaction;
 
@@ -96,8 +91,6 @@ public class ScheduleEscrowContract implements Contract {
     // does not throw an exception.
     @Override
     public void verify(LedgerTransaction tx) throws IllegalArgumentException {
-        // Tests whether there exists a *single* 'Create'
-        // command is present within the transaction/contract
         final Commands command = tx.findCommand(Commands.class, cmd -> true).getValue();
 
         // CREATE THE ESCROW SCHEDULE CONTRACT
@@ -117,7 +110,9 @@ public class ScheduleEscrowContract implements Contract {
 
         // CONTRACTORS REQUEST CONTRACT AMOUNT AMENDMENT,
         // USING AN ATTACHMENT THAT IS WITHIN 'VARIABLES CLAUSE'
+        if (command instanceof Commands.RequestExpectedDateModification) { requestDateAmendment(tx); }
     }
+
 
     private List<PublicKey> getOwningKeys(List<Party> parties) {
         List<PublicKey> keys = new ArrayList<PublicKey>();
@@ -354,6 +349,70 @@ public class ScheduleEscrowContract implements Contract {
                     command.getSigners().containsAll(expectedOutputSigners));
             require.using("All signers must be authorised via previous transactions.",
                     command.getSigners().equals(expectedOutputSigners));
+
+            return null;
+        });
+    }
+
+    private void requestDateAmendment(LedgerTransaction tx) {
+        final CommandWithParties<Commands.RequestExpectedDateModification> command = requireSingleCommand(tx.getCommands(), Commands.RequestExpectedDateModification.class);
+
+        requireThat(require -> {
+            require.using("Two inputs should be consumed.", tx.getInputs().size() == 2);
+            require.using("Two outputs should be produced.", tx.getOutputs().size() == 2);
+
+            List<ScheduleEscrowState> jobInputs =  tx.inputsOfType(ScheduleEscrowState.class);
+            List<ReportState> reportInputs = tx.inputsOfType(ReportState.class);
+
+            require.using("Must have one JobState input and one ReportState input",
+                    !jobInputs.isEmpty() && !reportInputs.isEmpty());
+
+            List<ScheduleEscrowState> jobOutputs =  tx.outputsOfType(ScheduleEscrowState.class);
+            List<ReportState> reportOutputs = tx.outputsOfType(ReportState.class);
+
+            require.using("Must have one JobState output and one ReportState output",
+                    !jobOutputs.isEmpty() && !reportOutputs.isEmpty());
+
+            // Report-specific verification:
+            ReportState reportInput = reportInputs.get(0);
+            ScheduleEscrowState jobInput = jobInputs.get(0);
+            ReportState reportOutput = reportOutputs.get(0);
+            ScheduleEscrowState jobOutput = jobOutputs.get(0);
+
+            require.using("Report should have status: UNSEEN",
+                    reportInput.getStatus() == ReportStatus.UNSEEN);
+
+            require.using("Output Report should have status: PROCESSED",
+                    reportOutput.getStatus() == ReportStatus.PROCESSED);
+
+            // Job Specific verification
+            int jobIndex = new Commands.RequestExpectedDateModification(command.getValue().jobIx, command.getValue().delayToDate).jobIx;
+            LocalDate extendedDate = new Commands.RequestExpectedDateModification(command.getValue().jobIx, command.getValue().delayToDate).delayToDate;
+            JCTJob inputModifiedJob = jobInput.getJobs().get(jobIndex);
+            JCTJob outputModifiedJob = jobOutput.getJobs().get(jobIndex);
+
+            // Signers:
+            final List<Party> expectedSigners = jobInput.getContractors();
+
+            require.using("Job amended should not change status",
+                    outputModifiedJob.getStatus() == inputModifiedJob.getStatus());
+            require.using("Expected End Date of job should be modified",
+                    !inputModifiedJob.getExpectedEndDate().equals(outputModifiedJob.getExpectedEndDate()));
+            require.using("Should Modify Expected End Date Correctly",
+                    inputModifiedJob.copyBuilder().withExpectedEndDate(extendedDate).build().equals(outputModifiedJob));
+            List<JCTJob> otherInputtedJobs = new ArrayList<>(jobInput.getJobs());
+            otherInputtedJobs.remove(jobIndex);
+            List<JCTJob> otherOutputJobs = new ArrayList<>(jobOutput.getJobs());
+            otherOutputJobs.remove(jobIndex);
+
+            require.using("All other jobs mustn't be changed",
+                    IntStream.range(0, otherInputtedJobs.size()).allMatch(idx ->
+                            (otherInputtedJobs.get(idx).equals(otherOutputJobs.get(idx)))
+                    ));
+            require.using("At least a single contractor should be a required signer.",
+                    expectedSigners.stream().anyMatch(signer ->
+                            command.getSigners().contains(signer.getOwningKey())
+                    ));
 
             return null;
         });

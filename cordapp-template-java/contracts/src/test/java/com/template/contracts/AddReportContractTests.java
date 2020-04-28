@@ -1,6 +1,7 @@
 package com.template.contracts;
 
 import com.template.states.ReportState;
+import com.template.states.ReportStatus;
 import com.template.states.ScheduleEscrowState;
 import kotlin.Unit;
 import net.corda.core.identity.CordaX500Name;
@@ -35,7 +36,7 @@ public class AddReportContractTests {
                     employer1, employer2, contractor1, contractor2);
 
     private ReportState getReportStateWith(String jctJobRef, Instant dateOfSurvey, String reportBody) {
-        return new ReportState(jctJobRef, dateOfSurvey, reportBody, reporters);
+        return new ReportState(ReportStatus.UNSEEN, jctJobRef, dateOfSurvey, reportBody, reporters);
     }
 
     @Test
@@ -101,6 +102,20 @@ public class AddReportContractTests {
                 tx.command(requiredSigners, new ReportContract.Commands.AddReportDocument());
                 tx.output(ReportContract.ID, outputState);
                 return tx.failsWith("Report must not have empty inputs");
+            });
+            return Unit.INSTANCE;
+        });
+    }
+
+    @Test
+    public void creationOfReportMustHaveStatusUNSEEN() {
+        ReportState unusedState = getReportStateWith("J1", Instant.now(),"Lorem Ipsum");
+        ReportState outputState = unusedState.copyWithNewStatus(ReportStatus.PROCESSED);
+        ledger(ledgerServices, l -> {
+            l.transaction(tx -> {
+                tx.command(requiredSigners, new ReportContract.Commands.AddReportDocument());
+                tx.output(ReportContract.ID, outputState);
+                return tx.failsWith("Output ReportState must have status: UNSEEN");
             });
             return Unit.INSTANCE;
         });

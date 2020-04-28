@@ -144,34 +144,4 @@ public class CreateScheduleFlowTest {
         exception.expectCause(instanceOf(TransactionVerificationException.class));
         future.get();
     }
-//
-//    @Test
-//    public void flowCreatesSingleOutputScheduleEscrowState() throws Exception {
-//        CreateJCTScheduleFlow flow =
-//                new CreateJCTScheduleFlow(
-//                        "Project 1",
-//                        Arrays.asList(employer1, employer2),
-//                        Arrays.asList(contractor1, contractor2),
-//                        1000.0,
-//                        5.0,
-//                        true,
-//                        jobs,
-//                        notary,
-//                        "Job Reference");
-//        CordaFuture<UniqueIdentifier> future = employerNode1.startFlow(flow);
-//        mockNet.runNetwork();
-//
-//        exception.expectCause(instanceOf(TransactionVerificationException.class));
-//        future.get();
-//    }
-
-//    @Test
-//    public void flowRejectsInvalidJCTs() throws Exception {
-//        JCTFlow flow = new JCTFlow("", Arrays.asList(employer), Arrays.asList(contractor1, contractor2));
-//        CordaFuture<SignedTransaction> future = employerNode.startFlow(flow);
-//        mockNet.runNetwork();
-//
-//        exception.expectCause(instanceOf(TransactionVerificationException.class));
-//        future.get();
-//    }
 }

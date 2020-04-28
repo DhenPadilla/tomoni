@@ -23,19 +23,22 @@ public class ReportState implements ContractState, LinearState {
     private final String jctJobReference;
     private final Instant dateOfSurvey;
     private final String reportBody;
+    private final ReportStatus status;
     private final List<Party> reporters;
 
     @ConstructorForDeserialization
-    public ReportState(UniqueIdentifier linearId, String jctJobReference, Instant dateOfSurvey, String reportBody, List<Party> reporters) {
+    public ReportState(UniqueIdentifier linearId, String jctJobReference, Instant dateOfSurvey, String reportBody, ReportStatus status, List<Party> reporters) {
         this.linearId = linearId;
         this.jctJobReference = jctJobReference;
         this.dateOfSurvey = dateOfSurvey;
         this.reportBody = reportBody;
+        this.status = status;
         this.reporters = reporters;
     }
 
-    public ReportState(String jctJobReference, Instant dateOfSurvey, String reportBody, List<Party> reporters) {
+    public ReportState(ReportStatus status, String jctJobReference, Instant dateOfSurvey, String reportBody, List<Party> reporters) {
         this.linearId = new UniqueIdentifier();
+        this.status = status;
         this.jctJobReference = jctJobReference;
         this.dateOfSurvey = dateOfSurvey;
         this.reportBody = reportBody;
@@ -76,6 +79,15 @@ public class ReportState implements ContractState, LinearState {
         return false;
     }
 
+    // JCT-based state
+    public ReportState copyWithNewStatus(ReportStatus status) {
+        return new ReportState(status,
+                this.jctJobReference,
+                this.dateOfSurvey,
+                this.reportBody,
+                this.reporters);
+    }
+
     public String getJctJobReference() {
         return jctJobReference;
     }
@@ -86,5 +98,9 @@ public class ReportState implements ContractState, LinearState {
 
     public String getReportBody() {
         return reportBody;
+    }
+
+    public ReportStatus getStatus() {
+        return status;
     }
 }
