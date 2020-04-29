@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 @BelongsToContract(ScheduleEscrowContract.class)
 public class ScheduleEscrowState implements ContractState, LinearState {
 
-    private Instant issuanceDate;
     private final UniqueIdentifier linearId;
     private final String projectName;
     private final List<Party> employers;
@@ -55,17 +54,6 @@ public class ScheduleEscrowState implements ContractState, LinearState {
         this.jobs = jobs;
     }
 
-    // JCT-based state
-    public ScheduleEscrowState copyWithNewJobs(List<JCTJob> jobs) {
-        return new ScheduleEscrowState(this.projectName,
-                                       this.employers,
-                                       this.contractors,
-                contractSum, this.retentionPercentage,
-                                        jobs);
-    }
-
-
-
 //    public ScheduleEscrowState signDate(Instant issuanceDate) {
 //        ScheduleEscrowState stateWithSignedDate =
 //                new ScheduleEscrowState(this.linearId,
@@ -78,6 +66,7 @@ public class ScheduleEscrowState implements ContractState, LinearState {
 //        return stateWithSignedDate;
 //    }
 
+    public Double getRetentionPercentage() { return this.retentionPercentage; }
 
     public String getProjectName() { return this.projectName; }
 
@@ -113,5 +102,79 @@ public class ScheduleEscrowState implements ContractState, LinearState {
 
     public Double getContractSum() {
         return this.contractSum;
+    }
+
+    public class ScheduleEscrowStateBuilder {
+
+        private Instant issuanceDate;
+        private UniqueIdentifier linearId;
+        private String projectName;
+        private List<Party> employers;
+        private List<Party> contractors;
+        private Double contractSum;
+        private Double retentionPercentage;
+        private Boolean allowAccountPayments = true;
+        private Double netCumulateValue = 0.0;
+        private Double previousCumulativeValue = 0.0;
+        private List<JCTJob> jobs;
+
+        public ScheduleEscrowStateBuilder(ScheduleEscrowState origin) {
+            this.projectName = origin.getProjectName();
+            this.linearId = origin.getLinearId();
+            this.employers = origin.getEmployers();
+            this.contractors = origin.getContractors();
+            this.contractSum = origin.getContractSum();
+            this.retentionPercentage = origin.getRetentionPercentage();
+            this.jobs = origin.getJobs();
+        }
+
+        public ScheduleEscrowState.ScheduleEscrowStateBuilder withEmployers(List<Party> employers) {
+            this.employers = employers;
+            return this;
+        }
+
+        public ScheduleEscrowState.ScheduleEscrowStateBuilder withContractSum(Double contractSum) {
+            this.contractSum = contractSum;
+            return this;
+        }
+
+        public ScheduleEscrowState.ScheduleEscrowStateBuilder withPercentage(Double retentionPercentage) {
+            this.retentionPercentage = retentionPercentage;
+            return this;
+        }
+
+        public ScheduleEscrowState.ScheduleEscrowStateBuilder withJobs(List<JCTJob> jobs) {
+            this.jobs = jobs;
+            return this;
+        }
+
+
+        public ScheduleEscrowState build() {
+            return new ScheduleEscrowState(this.linearId, this.projectName, this.employers, this.contractors, this.contractSum, this.retentionPercentage, this.jobs);
+        }
+    }
+
+    public ScheduleEscrowState.ScheduleEscrowStateBuilder copyBuilder() {
+        return new ScheduleEscrowState.ScheduleEscrowStateBuilder(this);
+    }
+
+    public boolean equalsExcept(Object obj, String check) {
+        boolean flag = false;
+        if (obj instanceof ScheduleEscrowState) {
+            ScheduleEscrowState state = (ScheduleEscrowState) obj;
+            if (check.equals("ContractSum") &&
+                state.getJobs().equals(this.getJobs()) &&
+                state.getParticipants().equals(this.getParticipants()) &&
+                state.getRetentionPercentage().equals(this.getRetentionPercentage())) {
+                flag = true;
+            }
+            if (check.equals("Jobs") &&
+                    state.getContractSum().equals(this.getContractSum()) &&
+                    state.getParticipants().equals(this.getParticipants()) &&
+                    state.getRetentionPercentage().equals(this.getRetentionPercentage())) {
+                flag = true;
+            }
+        }
+        return flag;
     }
 }

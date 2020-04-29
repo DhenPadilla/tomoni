@@ -108,10 +108,15 @@ public class ScheduleEscrowContract implements Contract {
         // EMPLOYERS REJECT A JOB MARKED AS COMPLETE
         if (command instanceof Commands.ContinueJob) { orderContinuationOfJobWithIndex(tx); }
 
-        // CONTRACTORS REQUEST CONTRACT AMOUNT AMENDMENT,
+        // CONTRACTORS REQUEST CONTRACT DATE AMENDMENT,
         // USING AN ATTACHMENT THAT IS WITHIN 'VARIABLES CLAUSE'
         if (command instanceof Commands.RequestExpectedDateModification) { requestDateAmendment(tx); }
 
+        // CONTRACTORS ACCEPT CONTRACT DATE AMENDMENT
+        if (command instanceof Commands.AcceptExpectedDateModification) { acceptDateAmendment(tx); }
+
+        // CONTRACTORS REQUEST CONTRACT AMOUNT AMENDMENT,
+        // USING AN ATTACHMENT THAT IS WITHIN 'VARIABLES CLAUSE'
         if (command instanceof Commands.RequestAmountModification) { requestAmountAmendment(tx); }
     }
 
@@ -357,7 +362,7 @@ public class ScheduleEscrowContract implements Contract {
     }
 
     private void requestAmountAmendment(LedgerTransaction tx) {
-        final CommandWithParties<Commands.RequestExpectedDateModification> command = requireSingleCommand(tx.getCommands(), Commands.RequestExpectedDateModification.class);
+        final CommandWithParties<Commands.RequestAmountModification> command = requireSingleCommand(tx.getCommands(), Commands.RequestAmountModification.class);
 
         requireThat(require -> {
             require.using("Two inputs should be consumed.", tx.getInputs().size() == 2);
@@ -388,11 +393,9 @@ public class ScheduleEscrowContract implements Contract {
                     reportOutput.getStatus() == ReportStatus.PROCESSED);
 
             // Job Specific verification
-            int jobIndex = new Commands.RequestExpectedDateModification(command.getValue().jobIx, command.getValue().delayToDate).jobIx;
-            LocalDate extendedDate = new Commands.RequestExpectedDateModification(command.getValue().jobIx, command.getValue().delayToDate).delayToDate;
+            int jobIndex = new Commands.RequestAmountModification(command.getValue().jobIx, command.getValue().amount).jobIx;
             JCTJob inputModifiedJob = jobInput.getJobs().get(jobIndex);
             JCTJob outputModifiedJob = jobOutput.getJobs().get(jobIndex);
-
             // Signers:
             final List<Party> expectedSigners = jobInput.getContractors();
 
@@ -400,14 +403,20 @@ public class ScheduleEscrowContract implements Contract {
                     inputModifiedJob.getStatus() == JCTJobStatus.IN_PROGRESS);
             require.using("Output Job should have status: AMOUNT_AMENDMENT_REQUESTED",
                     outputModifiedJob.getStatus() == JCTJobStatus.AMOUNT_AMENDMENT_REQUESTED);
-            require.using("Expected End Date of job should be modified",
-                    !inputModifiedJob.getExpectedEndDate().equals(outputModifiedJob.getExpectedEndDate()));
-            require.using("Should Modify Expected End Date Correctly",
-                    inputModifiedJob.copyBuilder().withExpectedEndDate(extendedDate).build().equals(outputModifiedJob));
+            require.using("ScheduleEscrowState should not change besides Status",
+                    inputModifiedJob.equalsExcept(outputModifiedJob, "Status"));
             List<JCTJob> otherInputtedJobs = new ArrayList<>(jobInput.getJobs());
             otherInputtedJobs.remove(jobIndex);
             List<JCTJob> otherOutputJobs = new ArrayList<>(jobOutput.getJobs());
             otherOutputJobs.remove(jobIndex);
+
+            Double requestedAmount = new Commands.RequestAmountModification(command.getValue().jobIx, command.getValue().amount).amount;
+            require.using("Output ReportState must have correctly saved contractSum",
+                    reportInput.copyBuilder()
+                            .withRequestedSum(requestedAmount)
+                            .withStatus(ReportStatus.PROCESSED)
+                            .build().equals(reportOutput));
+
 
             require.using("All other jobs mustn't be changed",
                     IntStream.range(0, otherInputtedJobs.size()).allMatch(idx ->
@@ -455,7 +464,6 @@ public class ScheduleEscrowContract implements Contract {
 
             // Job Specific verification
             int jobIndex = new Commands.RequestExpectedDateModification(command.getValue().jobIx, command.getValue().delayToDate).jobIx;
-            LocalDate extendedDate = new Commands.RequestExpectedDateModification(command.getValue().jobIx, command.getValue().delayToDate).delayToDate;
             JCTJob inputModifiedJob = jobInput.getJobs().get(jobIndex);
             JCTJob outputModifiedJob = jobOutput.getJobs().get(jobIndex);
 
@@ -466,10 +474,83 @@ public class ScheduleEscrowContract implements Contract {
                     inputModifiedJob.getStatus() == JCTJobStatus.IN_PROGRESS);
             require.using("Output Job should have status: DATE_AMENDMENT_REQUESTED",
                     outputModifiedJob.getStatus() == JCTJobStatus.DATE_AMENDMENT_REQUESTED);
-            require.using("Expected End Date of job should be modified",
-                    !inputModifiedJob.getExpectedEndDate().equals(outputModifiedJob.getExpectedEndDate()));
-            require.using("Should Modify Expected End Date Correctly",
-                    inputModifiedJob.copyBuilder().withExpectedEndDate(extendedDate).build().equalsExcept(outputModifiedJob, "Status"));
+            require.using("Input ScheduleEscrowState should not change besides Status",
+                    inputModifiedJob.equalsExcept(outputModifiedJob, "Status"));
+            List<JCTJob> otherInputtedJobs = new ArrayList<>(jobInput.getJobs());
+            otherInputtedJobs.remove(jobIndex);
+            List<JCTJob> otherOutputJobs = new ArrayList<>(jobOutput.getJobs());
+            otherOutputJobs.remove(jobIndex);
+
+            LocalDate requestedDate = new Commands.RequestExpectedDateModification(command.getValue().jobIx, command.getValue().delayToDate).delayToDate;
+            ReportState modifiedReport = reportInput.copyBuilder()
+                    .withRequestedDate(requestedDate)
+                    .withStatus(ReportStatus.PROCESSED)
+                    .build();
+            require.using("Expected End Date of job should be saved in output ReportState",
+                    modifiedReport.equals(reportOutput));
+
+            require.using("All other jobs mustn't be changed",
+                    IntStream.range(0, otherInputtedJobs.size()).allMatch(idx ->
+                            (otherInputtedJobs.get(idx).equals(otherOutputJobs.get(idx)))
+                    ));
+            require.using("At least a single contractor should be a required signer.",
+                    expectedSigners.stream().anyMatch(signer ->
+                            command.getSigners().contains(signer.getOwningKey())
+                    ));
+
+            return null;
+        });
+    }
+
+    private void acceptDateAmendment(LedgerTransaction tx) {
+        final CommandWithParties<Commands.AcceptExpectedDateModification> command = requireSingleCommand(tx.getCommands(), Commands.AcceptExpectedDateModification.class);
+
+        requireThat(require -> {
+            require.using("Two inputs should be consumed.", tx.getInputs().size() == 2);
+            require.using("Two outputs should be produced.", tx.getOutputs().size() == 2);
+
+            List<ScheduleEscrowState> jobInputs =  tx.inputsOfType(ScheduleEscrowState.class);
+            List<ReportState> reportInputs = tx.inputsOfType(ReportState.class);
+
+            require.using("Must have one JobState input and one ReportState input",
+                    !jobInputs.isEmpty() && !reportInputs.isEmpty());
+
+            List<ScheduleEscrowState> jobOutputs =  tx.outputsOfType(ScheduleEscrowState.class);
+            List<ReportState> reportOutputs = tx.outputsOfType(ReportState.class);
+
+            require.using("Must have one JobState output and one ReportState output",
+                    !jobOutputs.isEmpty() && !reportOutputs.isEmpty());
+
+            // Report-specific verification:
+            ReportState reportInput = reportInputs.get(0);
+            ScheduleEscrowState jobInput = jobInputs.get(0);
+            ReportState reportOutput = reportOutputs.get(0);
+            ScheduleEscrowState jobOutput = jobOutputs.get(0);
+
+            require.using("Report should have status: PROCESSED",
+                    reportInput.getStatus() == ReportStatus.PROCESSED);
+
+            require.using("Output Report should have status: CONSUMED",
+                    reportOutput.getStatus() == ReportStatus.CONSUMED);
+
+            // Job Specific verification
+            int jobIndex = new Commands.RequestExpectedDateModification(command.getValue().jobIx, command.getValue().delayToDate).jobIx;
+            LocalDate extendedDate = new Commands.RequestExpectedDateModification(command.getValue().jobIx, command.getValue().delayToDate).delayToDate;
+            JCTJob inputModifiedJob = jobInput.getJobs().get(jobIndex);
+            JCTJob outputModifiedJob = jobOutput.getJobs().get(jobIndex);
+
+            // Signers:
+            final List<Party> expectedSigners = jobInput.getContractors();
+
+            require.using("Input Job should have status: DATE_AMENDMENT_REQUESTED",
+                    inputModifiedJob.getStatus() == JCTJobStatus.DATE_AMENDMENT_REQUESTED);
+            require.using("Output Job should have status: IN_PROGRESS",
+                    outputModifiedJob.getStatus() == JCTJobStatus.IN_PROGRESS);
+            require.using("Job input and output must not be modified",
+                    inputModifiedJob.equalsExcept(outputModifiedJob, "Status"));
+            require.using("Schedule Escrow output state must not be modified",
+                    jobInput.equalsExcept(jobOutput, "Jobs"));
+
             List<JCTJob> otherInputtedJobs = new ArrayList<>(jobInput.getJobs());
             otherInputtedJobs.remove(jobIndex);
             List<JCTJob> otherOutputJobs = new ArrayList<>(jobOutput.getJobs());
@@ -479,8 +560,8 @@ public class ScheduleEscrowContract implements Contract {
                     IntStream.range(0, otherInputtedJobs.size()).allMatch(idx ->
                             (otherInputtedJobs.get(idx).equals(otherOutputJobs.get(idx)))
                     ));
-            require.using("At least a single contractor should be a required signer.",
-                    expectedSigners.stream().anyMatch(signer ->
+            require.using("All employers should be required to sign.",
+                    expectedSigners.stream().allMatch(signer ->
                             command.getSigners().contains(signer.getOwningKey())
                     ));
 

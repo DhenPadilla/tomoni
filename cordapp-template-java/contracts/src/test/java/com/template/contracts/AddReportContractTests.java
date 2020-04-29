@@ -12,10 +12,14 @@ import org.junit.Test;
 
 import java.security.PublicKey;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 
 import static net.corda.testing.node.NodeTestUtils.ledger;
+
+// TODO - Check for non-null 'request'
+//  variables when creating a new report
 
 public class AddReportContractTests {
     private TestIdentity employer1 = new TestIdentity(new CordaX500Name("Employer1", "London", "GB"));
@@ -35,13 +39,13 @@ public class AddReportContractTests {
             new MockServices(Arrays.asList("com.template.contracts"),
                     employer1, employer2, contractor1, contractor2);
 
-    private ReportState getReportStateWith(String jctJobRef, Instant dateOfSurvey, String reportBody) {
-        return new ReportState(ReportStatus.UNSEEN, jctJobRef, dateOfSurvey, reportBody, reporters);
+    private ReportState getReportStateWith(String jctJobRef, Instant dateOfSurvey, LocalDate requestCompletionDate, Double requestContractSum, String reportBody) {
+        return new ReportState(ReportStatus.UNSEEN, jctJobRef, dateOfSurvey, requestCompletionDate, requestContractSum, reportBody, reporters);
     }
 
     @Test
     public void confirmCreateReportShouldWork() {
-        ReportState outputState = getReportStateWith("J1", Instant.now(), "Lorem ipsum");
+        ReportState outputState = getReportStateWith("J1", Instant.now(), null, null, "Lorem ipsum");
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.command(requiredSigners, new ReportContract.Commands.AddReportDocument());
@@ -68,7 +72,7 @@ public class AddReportContractTests {
 
     @Test
     public void reportContractRejectsInputState() {
-        ReportState outputState = getReportStateWith("J1", Instant.now(), "Lorem ipsum");
+        ReportState outputState = getReportStateWith("J1", Instant.now(), null, null,"Lorem ipsum");
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.command(requiredSigners, new ReportContract.Commands.AddReportDocument());
@@ -82,7 +86,7 @@ public class AddReportContractTests {
 
     @Test
     public void reportContractProducesSingleInputState() {
-        ReportState outputState = getReportStateWith("J1", Instant.now(), "Lorem ipsum");
+        ReportState outputState = getReportStateWith("J1", Instant.now(), null, null,"Lorem ipsum");
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.command(requiredSigners, new ReportContract.Commands.AddReportDocument());
@@ -96,7 +100,7 @@ public class AddReportContractTests {
 
     @Test
     public void reportContractRejectsEmptyReport() {
-        ReportState outputState = getReportStateWith(null, Instant.now(), null);
+        ReportState outputState = getReportStateWith(null, Instant.now(), null, null,null);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.command(requiredSigners, new ReportContract.Commands.AddReportDocument());
@@ -109,8 +113,8 @@ public class AddReportContractTests {
 
     @Test
     public void creationOfReportMustHaveStatusUNSEEN() {
-        ReportState unusedState = getReportStateWith("J1", Instant.now(),"Lorem Ipsum");
-        ReportState outputState = unusedState.copyWithNewStatus(ReportStatus.PROCESSED);
+        ReportState unusedState = getReportStateWith("J1", Instant.now(),null, null,"Lorem Ipsum");
+        ReportState outputState = unusedState.copyBuilder().withStatus(ReportStatus.PROCESSED).build();
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.command(requiredSigners, new ReportContract.Commands.AddReportDocument());

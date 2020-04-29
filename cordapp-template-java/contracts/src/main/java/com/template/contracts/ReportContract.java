@@ -33,7 +33,8 @@ public class ReportContract implements Contract {
         // command is present within the transaction/contract
         List<CommandWithParties<CommandData>> commands = tx.getCommands();
         // Check if inputted command is of type: "ScheduleEscrowContract.Command"
-        // and if it is, dismiss from this verify
+        // and if it is, dismiss from this verify.
+        // Verification is handled in ScheduleEscrowContract
         if(commands.stream().anyMatch(com -> com.getValue() instanceof ScheduleEscrowContract.Commands)) {
             return;
         }

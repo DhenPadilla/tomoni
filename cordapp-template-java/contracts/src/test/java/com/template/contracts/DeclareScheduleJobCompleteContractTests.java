@@ -48,7 +48,7 @@ public class DeclareScheduleJobCompleteContractTests {
         else {
             // Copy the state given with updated jobs
             jobs = Arrays.asList(job1Complete, job2);
-            return state.copyWithNewJobs(jobs);
+            return state.copyBuilder().withJobs(jobs).build();
         }
     }
 
@@ -90,7 +90,7 @@ public class DeclareScheduleJobCompleteContractTests {
     public void jobToBeUpdatedMustHaveInputStatusINPROGRESS() {
         ScheduleEscrowState unusedState = getScheduleEscrowState(null);
         List<JCTJob> newInputJobs = Arrays.asList(job1.copyBuilder().withStatus(JCTJobStatus.PENDING).build(), job2);
-        ScheduleEscrowState inputState = unusedState.copyWithNewJobs(newInputJobs);
+        ScheduleEscrowState inputState = unusedState.copyBuilder().withJobs(newInputJobs).build();
         ScheduleEscrowState outputState = getScheduleEscrowState(null);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
@@ -123,7 +123,7 @@ public class DeclareScheduleJobCompleteContractTests {
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         JCTJob outputJob1 = job1Complete.copyBuilder().withAmount(job1.getAmount() + 100.0).build();
         List<JCTJob> outputJobs = Arrays.asList(outputJob1, job2);
-        ScheduleEscrowState outputState = inputState.copyWithNewJobs(outputJobs);
+        ScheduleEscrowState outputState = inputState.copyBuilder().withJobs(outputJobs).build();
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.command(requiredSigners, new ScheduleEscrowContract.Commands.DeclareJobComplete(0));
@@ -140,7 +140,7 @@ public class DeclareScheduleJobCompleteContractTests {
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         JCTJob outputJob1 = job1.copyBuilder().withStatus(JCTJobStatus.COMPLETED).withDescription("No Link:").build();
         List<JCTJob> outputJobs = Arrays.asList(outputJob1, job2);
-        ScheduleEscrowState outputState = inputState.copyWithNewJobs(outputJobs);
+        ScheduleEscrowState outputState = inputState.copyBuilder().withJobs(outputJobs).build();
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.command(requiredSigners, new ScheduleEscrowContract.Commands.DeclareJobComplete(0));
@@ -157,7 +157,7 @@ public class DeclareScheduleJobCompleteContractTests {
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         JCTJob updatedJob2 = job2.copyBuilder().withStatus(JCTJobStatus.COMPLETED).build();
         List<JCTJob> outputJobs = Arrays.asList(job1Complete, updatedJob2);
-        ScheduleEscrowState outputState = inputState.copyWithNewJobs(outputJobs);
+        ScheduleEscrowState outputState = inputState.copyBuilder().withJobs(outputJobs).build();
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.command(requiredSigners, new ScheduleEscrowContract.Commands.DeclareJobComplete(0));
