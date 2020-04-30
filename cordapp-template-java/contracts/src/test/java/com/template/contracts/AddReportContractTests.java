@@ -1,8 +1,6 @@
 package com.template.contracts;
 
-import com.template.states.ReportState;
-import com.template.states.ReportStatus;
-import com.template.states.ScheduleEscrowState;
+import com.template.states.*;
 import kotlin.Unit;
 import net.corda.core.identity.CordaX500Name;
 import net.corda.core.identity.Party;
@@ -52,18 +50,18 @@ public class AddReportContractTests {
                 tx.output(ReportContract.ID, outputState);
                 return tx.verifies();
             });
-            return Unit.INSTANCE;
+            return Unit.INSTANCE;   
         });
     }
 
     @Test
-    public void contractRejectsNonReportStates() {
-        ScheduleEscrowState outputState = new ScheduleEscrowState(null, null,null,null,null,null);
+    public void contractChecksForReportStates() {
+        JointVentureState outputState = new JointVentureState("Hello", reporters, reporters);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.command(requiredSigners, new ReportContract.Commands.AddReportDocument());
                 tx.output(ReportContract.ID, outputState);
-                return tx.failsWith("Output state is a type of: 'ReportState'");
+                return tx.failsWith("One output state is a type of: 'ReportState'");
             });
             return Unit.INSTANCE;
         });

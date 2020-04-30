@@ -3,7 +3,10 @@ package com.template.contracts;
 // Add these imports:
 
 import com.template.states.*;
-import net.corda.core.contracts.*;
+import net.corda.core.contracts.CommandData;
+import net.corda.core.contracts.CommandWithParties;
+import net.corda.core.contracts.Contract;
+import net.corda.core.contracts.TypeOnlyCommandData;
 import net.corda.core.identity.Party;
 import net.corda.core.transactions.LedgerTransaction;
 
@@ -59,7 +62,7 @@ public class ScheduleEscrowContract implements Contract {
         }
         class AcceptAmountModification extends TypeOnlyCommandData implements Commands {
             private Integer jobIx;
-            public AcceptAmountModification(Integer jobIx, Double amount) {
+            public AcceptAmountModification(Integer jobIx) {
                 this.jobIx = jobIx;
             }
         }
@@ -73,10 +76,8 @@ public class ScheduleEscrowContract implements Contract {
         }
         class AcceptExpectedDateModification extends TypeOnlyCommandData implements Commands {
             private Integer jobIx;
-            private LocalDate delayToDate;
-            public AcceptExpectedDateModification(Integer jobIx, LocalDate delayToDate) {
+            public AcceptExpectedDateModification(Integer jobIx) {
                 this.jobIx = jobIx;
-                this.delayToDate = delayToDate;
             }
         }
         class SendPayment extends TypeOnlyCommandData implements Commands {
@@ -112,12 +113,15 @@ public class ScheduleEscrowContract implements Contract {
         // USING AN ATTACHMENT THAT IS WITHIN 'VARIABLES CLAUSE'
         if (command instanceof Commands.RequestExpectedDateModification) { requestDateAmendment(tx); }
 
-        // CONTRACTORS ACCEPT CONTRACT DATE AMENDMENT
+        // EMPLOYERS ACCEPT CONTRACT DATE AMENDMENT
         if (command instanceof Commands.AcceptExpectedDateModification) { acceptDateAmendment(tx); }
 
         // CONTRACTORS REQUEST CONTRACT AMOUNT AMENDMENT,
         // USING AN ATTACHMENT THAT IS WITHIN 'VARIABLES CLAUSE'
         if (command instanceof Commands.RequestAmountModification) { requestAmountAmendment(tx); }
+
+        // EMPLOYERS ACCEPT CONTRACT AMOUNT AMENDMENT,
+        if (command instanceof Commands.AcceptAmountModification) { acceptAmountAmendment(tx); }
     }
 
 
@@ -431,6 +435,86 @@ public class ScheduleEscrowContract implements Contract {
         });
     }
 
+    private void acceptAmountAmendment(LedgerTransaction tx) {
+        final CommandWithParties<Commands.AcceptAmountModification> command = requireSingleCommand(tx.getCommands(), Commands.AcceptAmountModification.class);
+
+        requireThat(require -> {
+            require.using("Two inputs should be consumed.", tx.getInputs().size() == 2);
+            require.using("Two outputs should be produced.", tx.getOutputs().size() == 2);
+
+            List<ScheduleEscrowState> jobInputs =  tx.inputsOfType(ScheduleEscrowState.class);
+            List<ReportState> reportInputs = tx.inputsOfType(ReportState.class);
+
+            require.using("Must have one JobState input and one ReportState input",
+                    !jobInputs.isEmpty() && !reportInputs.isEmpty());
+
+            List<ScheduleEscrowState> jobOutputs =  tx.outputsOfType(ScheduleEscrowState.class);
+            List<ReportState> reportOutputs = tx.outputsOfType(ReportState.class);
+
+            require.using("Must have one JobState output and one ReportState output",
+                    !jobOutputs.isEmpty() && !reportOutputs.isEmpty());
+
+            // Report-specific verification:
+            ReportState reportInput = reportInputs.get(0);
+            ScheduleEscrowState jobInput = jobInputs.get(0);
+            ReportState reportOutput = reportOutputs.get(0);
+            ScheduleEscrowState jobOutput = jobOutputs.get(0);
+
+            require.using("Report should have status: PROCESSED",
+                    reportInput.getStatus() == ReportStatus.PROCESSED);
+
+            require.using("Output Report should have status: CONSUMED",
+                    reportOutput.getStatus() == ReportStatus.CONSUMED);
+
+            // Job Specific verification
+            int jobIndex = new Commands.AcceptAmountModification(command.getValue().jobIx).jobIx;
+            JCTJob inputModifiedJob = jobInput.getJobs().get(jobIndex);
+            JCTJob outputModifiedJob = jobOutput.getJobs().get(jobIndex);
+
+            // Signers:
+            final List<Party> expectedSigners = jobInput.getEmployers();
+            require.using("Input Job should have status: AMOUNT_AMENDMENT_REQUESTED",
+                    inputModifiedJob.getStatus() == JCTJobStatus.AMOUNT_AMENDMENT_REQUESTED);
+            require.using("Output Job should have status: IN_PROGRESS",
+                    outputModifiedJob.getStatus() == JCTJobStatus.IN_PROGRESS);
+
+            Double requestedContractSumAmount = jobInput.getContractSum() + reportInput.getRequestedAmount();
+            Double newJobAmount = reportInput.getRequestedAmount() + inputModifiedJob.getAmount();
+
+            List<JCTJob> otherInputtedJobs = new ArrayList<>(jobInput.getJobs());
+            otherInputtedJobs.remove(jobIndex);
+            List<JCTJob> otherOutputJobs = new ArrayList<>(jobOutput.getJobs());
+            otherOutputJobs.remove(jobIndex);
+            List<JCTJob> expectedOutputJobs = new ArrayList<>();
+            expectedOutputJobs.add(inputModifiedJob.copyBuilder()
+                    .withAmount(newJobAmount)
+                    .build());
+            expectedOutputJobs.addAll(otherOutputJobs);
+            require.using("Output Job should have same amount as requested in report",
+                    expectedOutputJobs.get(0).equalsExcept(outputModifiedJob, "Status"));
+
+            ScheduleEscrowState expectedOutputEscrowState =
+                    jobInput.copyBuilder()
+                    .withContractSum(requestedContractSumAmount)
+                    .withJobs(expectedOutputJobs)
+                    .build();
+
+            require.using("Output ScheduleEscrowState should have same ContractSum as requested in report",
+                    expectedOutputEscrowState.equals(jobOutput));
+
+            require.using("All other jobs mustn't be changed",
+                    IntStream.range(0, otherInputtedJobs.size()).allMatch(idx ->
+                            (otherInputtedJobs.get(idx).equals(otherOutputJobs.get(idx)))
+                    ));
+            require.using("All authorised employers should be required signers.",
+                    expectedSigners.stream().allMatch(signer ->
+                            command.getSigners().contains(signer.getOwningKey())
+                    ));
+
+            return null;
+        });
+    }
+
     private void requestDateAmendment(LedgerTransaction tx) {
         final CommandWithParties<Commands.RequestExpectedDateModification> command = requireSingleCommand(tx.getCommands(), Commands.RequestExpectedDateModification.class);
 
@@ -534,33 +618,34 @@ public class ScheduleEscrowContract implements Contract {
                     reportOutput.getStatus() == ReportStatus.CONSUMED);
 
             // Job Specific verification
-            int jobIndex = new Commands.RequestExpectedDateModification(command.getValue().jobIx, command.getValue().delayToDate).jobIx;
-            LocalDate extendedDate = new Commands.RequestExpectedDateModification(command.getValue().jobIx, command.getValue().delayToDate).delayToDate;
+            int jobIndex = new Commands.AcceptExpectedDateModification(command.getValue().jobIx).jobIx;
             JCTJob inputModifiedJob = jobInput.getJobs().get(jobIndex);
             JCTJob outputModifiedJob = jobOutput.getJobs().get(jobIndex);
 
             // Signers:
-            final List<Party> expectedSigners = jobInput.getContractors();
-
+            final List<Party> expectedSigners = jobInput.getEmployers();
             require.using("Input Job should have status: DATE_AMENDMENT_REQUESTED",
                     inputModifiedJob.getStatus() == JCTJobStatus.DATE_AMENDMENT_REQUESTED);
             require.using("Output Job should have status: IN_PROGRESS",
                     outputModifiedJob.getStatus() == JCTJobStatus.IN_PROGRESS);
-            require.using("Job input and output must not be modified",
-                    inputModifiedJob.equalsExcept(outputModifiedJob, "Status"));
-            require.using("Schedule Escrow output state must not be modified",
-                    jobInput.equalsExcept(jobOutput, "Jobs"));
 
+            LocalDate requestedDate = reportInput.getRequestedCompletionDate();
+            require.using("Output ScheduleEscrowState should have same expected end date as requested in report",
+                    inputModifiedJob.copyBuilder()
+                            .withExpectedEndDate(requestedDate)
+                            .build()
+                            .equalsExcept(outputModifiedJob, "Status"));
             List<JCTJob> otherInputtedJobs = new ArrayList<>(jobInput.getJobs());
             otherInputtedJobs.remove(jobIndex);
             List<JCTJob> otherOutputJobs = new ArrayList<>(jobOutput.getJobs());
             otherOutputJobs.remove(jobIndex);
 
+
             require.using("All other jobs mustn't be changed",
                     IntStream.range(0, otherInputtedJobs.size()).allMatch(idx ->
                             (otherInputtedJobs.get(idx).equals(otherOutputJobs.get(idx)))
                     ));
-            require.using("All employers should be required to sign.",
+            require.using("All authorised employers should be required signers.",
                     expectedSigners.stream().allMatch(signer ->
                             command.getSigners().contains(signer.getOwningKey())
                     ));

@@ -41,7 +41,7 @@ public class ReportContract implements Contract {
         final ReportContract.Commands command = tx.findCommand(ReportContract.Commands.class, cmd -> true).getValue();
         if(command instanceof ReportContract.Commands.AddReportDocument) {
             requireThat(require -> {
-                require.using("Output state is a type of: 'ReportState'",
+                require.using("One output state is a type of: 'ReportState'",
                         tx.getOutputStates().get(0) instanceof ReportState);
                 require.using("No input state must be consumed when creating a report.",
                         tx.getInputs().isEmpty());

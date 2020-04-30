@@ -14,6 +14,7 @@ import java.security.PublicKey;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 // *********
@@ -78,11 +79,22 @@ public class ScheduleEscrowState implements ContractState, LinearState {
         return this.contractors;
     }
 
+    private List<Party> convertNullToEmpty(List<Party> nullable) {
+        List<Party> parts;
+        if (nullable == null) {
+            parts = new ArrayList<>();
+        }
+        else {
+            parts = nullable;
+        }
+        return parts;
+    }
+
     @Override
     public List<AbstractParty> getParticipants() {
         final List<AbstractParty> parts = new ArrayList<>();
-        parts.addAll(employers);
-        parts.addAll(contractors);
+        parts.addAll(convertNullToEmpty(employers));
+        parts.addAll(convertNullToEmpty(contractors));
         return parts;
     }
 
@@ -158,20 +170,16 @@ public class ScheduleEscrowState implements ContractState, LinearState {
         return new ScheduleEscrowState.ScheduleEscrowStateBuilder(this);
     }
 
-    public boolean equalsExcept(Object obj, String check) {
+    public boolean equals(Object obj) {
+        // Omits unique Identifier
         boolean flag = false;
         if (obj instanceof ScheduleEscrowState) {
-            ScheduleEscrowState state = (ScheduleEscrowState) obj;
-            if (check.equals("ContractSum") &&
-                state.getJobs().equals(this.getJobs()) &&
-                state.getParticipants().equals(this.getParticipants()) &&
-                state.getRetentionPercentage().equals(this.getRetentionPercentage())) {
-                flag = true;
-            }
-            if (check.equals("Jobs") &&
-                    state.getContractSum().equals(this.getContractSum()) &&
-                    state.getParticipants().equals(this.getParticipants()) &&
-                    state.getRetentionPercentage().equals(this.getRetentionPercentage())) {
+            ScheduleEscrowState schedule = (ScheduleEscrowState) obj;
+            if (Objects.equals(schedule.getContractSum(), this.getContractSum()) &&
+                    Objects.equals(schedule.getRetentionPercentage(), this.getRetentionPercentage()) &&
+                    Objects.equals(schedule.getParticipants(), this.getParticipants()) &&
+                    Objects.equals(schedule.getProjectName(), this.getProjectName())
+                    ) {
                 flag = true;
             }
         }

@@ -79,8 +79,8 @@ public class ReportState implements ContractState, LinearState {
     }
 
     public boolean checkIfEmpty() {
-        if (isNullOrEmpty(jctJobReference) ||
-            isNullOrEmpty(reportBody) ||
+        if (isNullOrEmpty(this.jctJobReference) ||
+            isNullOrEmpty(this.reportBody) ||
             this.dateOfSurvey == null) {
             return true;
         }
@@ -102,7 +102,7 @@ public class ReportState implements ContractState, LinearState {
             this.jctJobReference = origin.getJctJobReference();
             this.dateOfSurvey = origin.getDateOfSurvey();
             this.requestedCompletionDate = origin.getRequestedCompletionDate();
-            this.requestedContractSum = origin.getRequestedContractSum();
+            this.requestedContractSum = origin.getRequestedAmount();
             this.reportBody = origin.getReportBody();
             this.status = origin.getStatus();
             this.reporters = origin.getReporters();
@@ -149,7 +149,7 @@ public class ReportState implements ContractState, LinearState {
 
     public LocalDate getRequestedCompletionDate() { return requestedCompletionDate; }
 
-    public Double getRequestedContractSum() { return requestedContractSum; }
+    public Double getRequestedAmount() { return requestedContractSum; }
 
     public String getJctJobReference() {
         return jctJobReference;
@@ -174,13 +174,13 @@ public class ReportState implements ContractState, LinearState {
         boolean flag = false;
         if (obj instanceof ReportState) {
             ReportState report = (ReportState) obj;
-            if (report.getStatus().equals(this.getStatus()) &&
-                    report.getDateOfSurvey().equals(this.getDateOfSurvey()) &&
-                    report.getJctJobReference().equals(this.getJctJobReference()) &&
-                    report.getReporters().equals(this.getReporters()) &&
-                    report.getReportBody().equals(this.getReportBody()) &&
+            if (report.getStatus().equals(this.getStatus()) &
+                    Objects.equals(report.getDateOfSurvey(), this.getDateOfSurvey()) &&
+                    Objects.equals(report.getJctJobReference(), this.getJctJobReference()) &&
+                    Objects.equals(report.getReporters(), this.getReporters()) &&
+                    Objects.equals(report.getReportBody(), this.getReportBody()) &&
                     Objects.equals(report.getRequestedCompletionDate(), this.getRequestedCompletionDate()) &&
-                    Objects.equals(report.getRequestedContractSum(), this.getRequestedContractSum())) {
+                    Objects.equals(report.getRequestedAmount(), this.getRequestedAmount())) {
                             flag = true;
                     }
             }
