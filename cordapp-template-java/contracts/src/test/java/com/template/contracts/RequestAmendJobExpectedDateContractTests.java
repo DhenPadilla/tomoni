@@ -67,7 +67,7 @@ public class RequestAmendJobExpectedDateContractTests {
 
     @Test
     public void confirmAmendDateShouldWork() {
-        ReportState inputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
@@ -93,7 +93,7 @@ public class RequestAmendJobExpectedDateContractTests {
 
     @Test
     public void requestAmendJobShouldHaveTwoInputs() {
-        ReportState outputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState outputReportState = getReportState(ReportStatus.ISSUED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate().plusMonths(3);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
@@ -116,7 +116,7 @@ public class RequestAmendJobExpectedDateContractTests {
 
     @Test
     public void requestAmendJobShouldHaveTwoOutputs() {
-        ReportState outputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState outputReportState = getReportState(ReportStatus.ISSUED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate().plusMonths(3);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
@@ -139,7 +139,7 @@ public class RequestAmendJobExpectedDateContractTests {
 
     @Test
     public void requestAmendJobShouldHaveOneReportAndOneJobInput() {
-        ReportState outputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState outputReportState = getReportState(ReportStatus.ISSUED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
         LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate().plusMonths(3);
@@ -163,7 +163,7 @@ public class RequestAmendJobExpectedDateContractTests {
 
     @Test
     public void requestAmendJobShouldHaveOneReportAndOneJobOutput() {
-        ReportState outputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState outputReportState = getReportState(ReportStatus.ISSUED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
         LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate().plusMonths(3);
@@ -187,7 +187,7 @@ public class RequestAmendJobExpectedDateContractTests {
 
     @Test
     public void attachedReportContractMustHaveStatusUNSEEN() {
-        ReportState inputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
@@ -212,7 +212,7 @@ public class RequestAmendJobExpectedDateContractTests {
 
     @Test
     public void outputReportContractMustHaveStatusPROCESSED() {
-        ReportState inputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getReportState(ReportStatus.ISSUED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
         LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate().plusMonths(3);
@@ -230,8 +230,8 @@ public class RequestAmendJobExpectedDateContractTests {
     }
 
     @Test
-    public void jobInputShouldHaveStatusINPROGRESS() {
-        ReportState inputReportState = getReportState(ReportStatus.UNSEEN);
+    public void jobInputForRequestDateModificationShouldHaveStatusINPROGRESS() {
+        ReportState inputReportState = getReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         List<JCTJob> jobs = Arrays.asList(job1.copyBuilder().withStatus(JCTJobStatus.COMPLETED).build(), job2);
@@ -242,7 +242,8 @@ public class RequestAmendJobExpectedDateContractTests {
                 tx.input(ScheduleEscrowContract.ID, outputState);
                 tx.output(ScheduleEscrowContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.RequestExpectedDateModification(0, requestCompletionDate));
+                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.RequestExpectedDateModification(
+                        0, requestCompletionDate));
                 return tx.failsWith("Input Job should have status: IN_PROGRESS");
             });
             return Unit.INSTANCE;
@@ -251,7 +252,7 @@ public class RequestAmendJobExpectedDateContractTests {
 
     @Test
     public void jobOutputShouldHaveStatusDATEREQUESTED() {
-        ReportState inputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         List<JCTJob> jobs = Arrays.asList(job1.copyBuilder().withStatus(JCTJobStatus.COMPLETED).build(), job2);
@@ -271,7 +272,7 @@ public class RequestAmendJobExpectedDateContractTests {
 
     @Test
     public void shouldNotModifyScheduleEscrowStateExpectedEndDate() {
-        ReportState inputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         List<JCTJob> jobs = Arrays.asList(job1Output.copyBuilder().withExpectedEndDate(requestCompletionDate).build(), job2);
@@ -291,7 +292,7 @@ public class RequestAmendJobExpectedDateContractTests {
 
     @Test
     public void shouldSaveExpectedEndDateInReportStateCorrectly() {
-        ReportState inputReportState = getNullRequestReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getNullRequestReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getNullRequestReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         List<JCTJob> jobs = Arrays.asList(job1Output, job2);
@@ -312,7 +313,7 @@ public class RequestAmendJobExpectedDateContractTests {
     @Test
     public void atLeastSingleContractorMustBeIncludedInTransaction() {
         List<PublicKey> employerKeys = Arrays.asList(employers.get(0).getOwningKey(), employers.get(1).getOwningKey());
-        ReportState inputReportState = getNullRequestReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getNullRequestReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);

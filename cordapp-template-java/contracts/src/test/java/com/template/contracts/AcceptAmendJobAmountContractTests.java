@@ -105,7 +105,7 @@ public class AcceptAmendJobAmountContractTests {
 
     @Test
     public void acceptAmendJobShouldHaveTwoOutputs() {
-        ReportState outputReportState = getOutputReportState(ReportStatus.UNSEEN);
+        ReportState outputReportState = getOutputReportState(ReportStatus.ISSUED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
         ledger(ledgerServices, l -> {
@@ -162,7 +162,7 @@ public class AcceptAmendJobAmountContractTests {
 
     @Test
     public void inputReportContractMustHaveStatusPROCESSED() {
-        ReportState inputReportState = getRequestReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getRequestReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getOutputReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);

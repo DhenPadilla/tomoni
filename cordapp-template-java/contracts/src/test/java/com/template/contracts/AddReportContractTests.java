@@ -38,7 +38,7 @@ public class AddReportContractTests {
                     employer1, employer2, contractor1, contractor2);
 
     private ReportState getReportStateWith(String jctJobRef, Instant dateOfSurvey, LocalDate requestCompletionDate, Double requestContractSum, String reportBody) {
-        return new ReportState(ReportStatus.UNSEEN, jctJobRef, dateOfSurvey, requestCompletionDate, requestContractSum, reportBody, reporters);
+        return new ReportState(ReportStatus.ISSUED, jctJobRef, dateOfSurvey, requestCompletionDate, requestContractSum, reportBody, reporters);
     }
 
     @Test
@@ -50,7 +50,7 @@ public class AddReportContractTests {
                 tx.output(ReportContract.ID, outputState);
                 return tx.verifies();
             });
-            return Unit.INSTANCE;   
+            return Unit.INSTANCE;
         });
     }
 

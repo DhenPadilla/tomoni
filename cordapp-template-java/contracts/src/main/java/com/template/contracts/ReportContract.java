@@ -51,7 +51,7 @@ public class ReportContract implements Contract {
                 require.using("Report must not have empty inputs",
                         !outputState.checkIfEmpty());
                 require.using("Output ReportState must have status: UNSEEN",
-                        outputState.getStatus() == ReportStatus.UNSEEN);
+                        outputState.getStatus() == ReportStatus.ISSUED);
 
                 return null;
             });

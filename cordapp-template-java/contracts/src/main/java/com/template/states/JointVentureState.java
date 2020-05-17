@@ -1,7 +1,7 @@
 package com.template.states;
 
 import com.template.contracts.JCTContract;
-import com.template.contracts.JCTRecital;
+import com.template.contracts.JCTClause;
 import net.corda.core.contracts.BelongsToContract;
 import net.corda.core.contracts.ContractState;
 import net.corda.core.contracts.LinearState;
@@ -28,7 +28,7 @@ public class JointVentureState implements ContractState, LinearState {
     private final String projectName;
     private final List<Party> employer;
     private final List<Party> contractor;
-    private final List<JCTRecital> recitals = new ArrayList<JCTRecital>();
+    private final List<JCTClause> recitals = new ArrayList<JCTClause>();
 
     @ConstructorForDeserialization
     public JointVentureState(UniqueIdentifier linearId, String projectName, List<Party> employer, List<Party> contractor) {
@@ -56,7 +56,7 @@ public class JointVentureState implements ContractState, LinearState {
         return stateWithSignedDate;
     }
 
-    public JointVentureState appendRecitals(List<JCTRecital> recitals) {
+    public JointVentureState appendRecitals(List<JCTClause> recitals) {
         JointVentureState withRecitals = new JointVentureState(projectName, this.employer, this.contractor);
         withRecitals.recitals.addAll(recitals);
         return withRecitals;

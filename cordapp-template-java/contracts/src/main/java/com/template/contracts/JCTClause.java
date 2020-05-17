@@ -12,14 +12,11 @@ import java.time.Instant;
 // ************
 // * Contract *
 // ************
-public abstract class JCTRecital implements Contract {
+public abstract class JCTClause implements Contract {
     private final String recitalDesc;
     private final String recitalStatus;
     private final Instant issuanceDate;
-    // TODO - extend recitals to have conditions as children?
-    //private final List<JCTCondition> conditions;
-
-    protected JCTRecital(String recitalDesc, String recitalStatus, Instant issuanceDate) {
+    protected JCTClause(String recitalDesc, String recitalStatus, Instant issuanceDate) {
         this.recitalDesc = recitalDesc;
         this.recitalStatus = recitalStatus;
         this.issuanceDate = issuanceDate;

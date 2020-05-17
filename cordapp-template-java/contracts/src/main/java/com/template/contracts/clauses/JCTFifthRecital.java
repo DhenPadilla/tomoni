@@ -1,11 +1,11 @@
 package com.template.contracts.clauses;
 
-import com.template.contracts.JCTRecital;
+import com.template.contracts.JCTClause;
 import net.corda.core.transactions.LedgerTransaction;
 
 import java.time.Instant;
 
-public class JCTFifthRecital extends JCTRecital {
+public class JCTFifthRecital extends JCTClause {
     public JCTFifthRecital(String recitalDesc, String recitalStatus, Instant issuanceDate) {
         super(recitalDesc, recitalStatus, issuanceDate);
     }

@@ -67,7 +67,7 @@ public class RequestAmendJobAmountContractTests {
 
     @Test
     public void confirmRequestAmendAmountShouldWork() {
-        ReportState inputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
@@ -92,7 +92,7 @@ public class RequestAmendJobAmountContractTests {
 
     @Test
     public void requestAmendJobShouldHaveTwoInputs() {
-        ReportState outputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState outputReportState = getReportState(ReportStatus.ISSUED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
 
@@ -114,7 +114,7 @@ public class RequestAmendJobAmountContractTests {
 
     @Test
     public void requestAmendJobShouldHaveTwoOutputs() {
-        ReportState inputReportState = getNullRequestReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getNullRequestReportState(ReportStatus.ISSUED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
         ledger(ledgerServices, l -> {
@@ -136,7 +136,7 @@ public class RequestAmendJobAmountContractTests {
 
     @Test
     public void requestAmendJobShouldHaveOneReportAndOneJobInput() {
-        ReportState outputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState outputReportState = getReportState(ReportStatus.ISSUED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
         ledger(ledgerServices, l -> {
@@ -159,7 +159,7 @@ public class RequestAmendJobAmountContractTests {
 
     @Test
     public void requestAmendJobShouldHaveOneReportAndOneJobOutput() {
-        ReportState outputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState outputReportState = getReportState(ReportStatus.ISSUED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
         LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate().plusMonths(3);
@@ -183,7 +183,7 @@ public class RequestAmendJobAmountContractTests {
 
     @Test
     public void attachedReportContractMustHaveStatusUNSEEN() {
-        ReportState inputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
@@ -207,7 +207,7 @@ public class RequestAmendJobAmountContractTests {
 
     @Test
     public void outputReportContractMustHaveStatusPROCESSED() {
-        ReportState inputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getReportState(ReportStatus.ISSUED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
         ledger(ledgerServices, l -> {
@@ -225,7 +225,7 @@ public class RequestAmendJobAmountContractTests {
 
     @Test
     public void jobInputShouldHaveStatusINPROGRESS() {
-        ReportState inputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         List<JCTJob> jobs = Arrays.asList(job1.copyBuilder().withStatus(JCTJobStatus.COMPLETED).build(), job2);
@@ -245,7 +245,7 @@ public class RequestAmendJobAmountContractTests {
 
     @Test
     public void jobOutputShouldHaveStatusAMOUNTREQUESTED() {
-        ReportState inputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         List<JCTJob> jobs = Arrays.asList(job1.copyBuilder().withStatus(JCTJobStatus.COMPLETED).build(), job2);
@@ -265,7 +265,7 @@ public class RequestAmendJobAmountContractTests {
 
     @Test
     public void shouldNotModifyScheduleEscrowStateJobAmount() {
-        ReportState inputReportState = getReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         List<JCTJob> jobs = Arrays.asList(job1Output.copyBuilder().withAmount(amountRequest).build(), job2);
@@ -285,7 +285,7 @@ public class RequestAmendJobAmountContractTests {
 
     @Test
     public void shouldSaveRequestedAmountInReportStateCorrectly() {
-        ReportState inputReportState = getNullRequestReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getNullRequestReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getNullRequestReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
@@ -305,7 +305,7 @@ public class RequestAmendJobAmountContractTests {
     @Test
     public void atLeastSingleContractorMustBeIncludedInTransaction() {
         List<PublicKey> employerKeys = Arrays.asList(employers.get(0).getOwningKey(), employers.get(1).getOwningKey());
-        ReportState inputReportState = getNullRequestReportState(ReportStatus.UNSEEN);
+        ReportState inputReportState = getNullRequestReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
         ScheduleEscrowState inputState = getScheduleEscrowState(null);
         ScheduleEscrowState outputState = getScheduleEscrowState(inputState);

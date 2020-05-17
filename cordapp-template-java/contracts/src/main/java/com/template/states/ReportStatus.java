@@ -4,7 +4,7 @@ import net.corda.core.serialization.CordaSerializable;
 
 @CordaSerializable
 public enum ReportStatus {
-    UNSEEN,
+    ISSUED,
     PROCESSED,
     CONSUMED
 }

@@ -391,7 +391,7 @@ public class ScheduleEscrowContract implements Contract {
             ScheduleEscrowState jobOutput = jobOutputs.get(0);
 
             require.using("Report should have status: UNSEEN",
-                    reportInput.getStatus() == ReportStatus.UNSEEN);
+                    reportInput.getStatus() == ReportStatus.ISSUED);
 
             require.using("Output Report should have status: PROCESSED",
                     reportOutput.getStatus() == ReportStatus.PROCESSED);
@@ -541,7 +541,7 @@ public class ScheduleEscrowContract implements Contract {
             ScheduleEscrowState jobOutput = jobOutputs.get(0);
 
             require.using("Report should have status: UNSEEN",
-                    reportInput.getStatus() == ReportStatus.UNSEEN);
+                    reportInput.getStatus() == ReportStatus.ISSUED);
 
             require.using("Output Report should have status: PROCESSED",
                     reportOutput.getStatus() == ReportStatus.PROCESSED);
