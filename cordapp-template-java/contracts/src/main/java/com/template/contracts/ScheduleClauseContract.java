@@ -22,9 +22,9 @@ import static net.corda.core.contracts.ContractsDSL.requireThat;
 // ************
 // * Contract *
 // ************
-public class ScheduleEscrowContract implements Contract {
+public class ScheduleClauseContract implements Contract {
     // This is used to identify our contract when building a transaction.
-    public static final String ID = "com.template.contracts.ScheduleEscrowContract";
+    public static final String ID = "com.template.contracts.ScheduleClauseContract";
 
     public interface Commands extends CommandData {
         class CreateSchedule extends TypeOnlyCommandData implements Commands {}
@@ -140,14 +140,14 @@ public class ScheduleEscrowContract implements Contract {
         final CommandWithParties<Commands.CreateSchedule> command = requireSingleCommand(tx.getCommands(), Commands.CreateSchedule.class);
 
         requireThat(require -> {
-            require.using("Output state is a type of: 'ScheduleEscrowState'", tx.getOutputStates().get(0) instanceof ScheduleEscrowState);
+            require.using("Output state is a type of: 'ScheduleEscrowState'", tx.getOutputStates().get(0) instanceof ScheduleClauseState);
 
             // Input/Output state requirements.
             require.using("No inputs should be consumed when issuing a Schedule.", tx.getInputs().isEmpty());
             require.using("There should be one output state.", tx.getOutputs().size() == 1);
 
             // State-specific requirements
-            final ScheduleEscrowState jobOutput = tx.outputsOfType(ScheduleEscrowState.class).get(0);
+            final ScheduleClauseState jobOutput = tx.outputsOfType(ScheduleClauseState.class).get(0);
             final List<Party> employers = jobOutput.getEmployers();
             final List<Party> contractors = jobOutput.getContractors();
             final List<PublicKey> expectedSigners = new ArrayList<>();
@@ -156,12 +156,19 @@ public class ScheduleEscrowContract implements Contract {
             System.out.println("No. Expected Signers: " + expectedSigners.size());
             System.out.println("No. signers in command: " + command.getSigners().size());
 
-            require.using("The employers and the contractors should be different parties.", !employers.containsAll(contractors));
-            List<JCTJob> jobs = jobOutput.getJobs();
-            require.using("Output state must have at least one Job", !jobs.isEmpty());
-            require.using("All the jobs should be unstarted/pending.", jobs.stream().allMatch(job -> job.getStatus() == JCTJobStatus.PENDING));
+            // Assert the set of contractors is not the set of employers
+            require.using("The employers and the contractors should be different parties.",
+                    !employers.containsAll(contractors));
 
-            require.using("Testing for multiple employers & contractors", jobOutput.getParticipants().size() > 2);
+            List<JCTJob> jobs = jobOutput.getJobs();
+            // Assert the Schedule Clause state to have at least one Job in it's list
+            require.using("Output state must have at least one Job", !jobs.isEmpty());
+            // Assert all JCTJobs are not-started, with status: PENDING
+            require.using("All the jobs should be unstarted/pending.",
+                    jobs.stream().allMatch(job -> job.getStatus() == JCTJobStatus.PENDING));
+
+            require.using("Testing for multiple employers & contractors",
+                    jobOutput.getParticipants().size() > 2);
             require.using("The employers and contractors should be required signers.",
                     command.getSigners().containsAll(expectedSigners));
 
@@ -177,8 +184,8 @@ public class ScheduleEscrowContract implements Contract {
             require.using("One JobState input should be consumed.", tx.getInputs().size() == 1);
             require.using("One JobState output should be produced.", tx.getOutputs().size() == 1);
 
-            ScheduleEscrowState jobInputs =  tx.inputsOfType(ScheduleEscrowState.class).get(0);
-            ScheduleEscrowState jobOutputs =  tx.outputsOfType(ScheduleEscrowState.class).get(0);
+            ScheduleClauseState jobInputs =  tx.inputsOfType(ScheduleClauseState.class).get(0);
+            ScheduleClauseState jobOutputs =  tx.outputsOfType(ScheduleClauseState.class).get(0);
             int jobIndex = new Commands.StartJob(command.getValue().jobIx).jobIx;
             JCTJob inputModifiedJob = jobInputs.getJobs().get(jobIndex);
             JCTJob outputModifiedJob = jobOutputs.getJobs().get(jobIndex);
@@ -219,8 +226,8 @@ public class ScheduleEscrowContract implements Contract {
             require.using("One JobState input should be consumed.", tx.getInputs().size() == 1);
             require.using("One JobState output should be produced.", tx.getOutputs().size() == 1);
 
-            ScheduleEscrowState jobInputs =  tx.inputsOfType(ScheduleEscrowState.class).get(0);
-            ScheduleEscrowState jobOutputs =  tx.outputsOfType(ScheduleEscrowState.class).get(0);
+            ScheduleClauseState jobInputs =  tx.inputsOfType(ScheduleClauseState.class).get(0);
+            ScheduleClauseState jobOutputs =  tx.outputsOfType(ScheduleClauseState.class).get(0);
             int jobIndex = new Commands.DeclareJobComplete(command.getValue().jobIx).jobIx;
             JCTJob inputModifiedJob = jobInputs.getJobs().get(jobIndex);
             JCTJob outputModifiedJob = jobOutputs.getJobs().get(jobIndex);
@@ -261,8 +268,8 @@ public class ScheduleEscrowContract implements Contract {
             require.using("One JobState input should be consumed.", tx.getInputs().size() == 1);
             require.using("One JobState output should be produced.", tx.getOutputs().size() == 1);
 
-            ScheduleEscrowState jobInputs =  tx.inputsOfType(ScheduleEscrowState.class).get(0);
-            ScheduleEscrowState jobOutputs =  tx.outputsOfType(ScheduleEscrowState.class).get(0);
+            ScheduleClauseState jobInputs =  tx.inputsOfType(ScheduleClauseState.class).get(0);
+            ScheduleClauseState jobOutputs =  tx.outputsOfType(ScheduleClauseState.class).get(0);
             int jobIndex = new Commands.ConfirmJobComplete(command.getValue().jobIx).jobIx;
             JCTJob inputModifiedJob = jobInputs.getJobs().get(jobIndex);
             JCTJob outputModifiedJob = jobOutputs.getJobs().get(jobIndex);
@@ -316,8 +323,8 @@ public class ScheduleEscrowContract implements Contract {
             require.using("One JobState input should be consumed.", tx.getInputs().size() == 1);
             require.using("One JobState output should be produced.", tx.getOutputs().size() == 1);
 
-            ScheduleEscrowState jobInputs =  tx.inputsOfType(ScheduleEscrowState.class).get(0);
-            ScheduleEscrowState jobOutputs =  tx.outputsOfType(ScheduleEscrowState.class).get(0);
+            ScheduleClauseState jobInputs =  tx.inputsOfType(ScheduleClauseState.class).get(0);
+            ScheduleClauseState jobOutputs =  tx.outputsOfType(ScheduleClauseState.class).get(0);
             int jobIndex = new Commands.ContinueJob(command.getValue().jobIx).jobIx;
             JCTJob inputModifiedJob = jobInputs.getJobs().get(jobIndex);
             JCTJob outputModifiedJob = jobOutputs.getJobs().get(jobIndex);
@@ -372,13 +379,13 @@ public class ScheduleEscrowContract implements Contract {
             require.using("Two inputs should be consumed.", tx.getInputs().size() == 2);
             require.using("Two outputs should be produced.", tx.getOutputs().size() == 2);
 
-            List<ScheduleEscrowState> jobInputs =  tx.inputsOfType(ScheduleEscrowState.class);
+            List<ScheduleClauseState> jobInputs =  tx.inputsOfType(ScheduleClauseState.class);
             List<ReportState> reportInputs = tx.inputsOfType(ReportState.class);
 
             require.using("Must have one JobState input and one ReportState input",
                     !jobInputs.isEmpty() && !reportInputs.isEmpty());
 
-            List<ScheduleEscrowState> jobOutputs =  tx.outputsOfType(ScheduleEscrowState.class);
+            List<ScheduleClauseState> jobOutputs =  tx.outputsOfType(ScheduleClauseState.class);
             List<ReportState> reportOutputs = tx.outputsOfType(ReportState.class);
 
             require.using("Must have one JobState output and one ReportState output",
@@ -386,9 +393,9 @@ public class ScheduleEscrowContract implements Contract {
 
             // Report-specific verification:
             ReportState reportInput = reportInputs.get(0);
-            ScheduleEscrowState jobInput = jobInputs.get(0);
+            ScheduleClauseState jobInput = jobInputs.get(0);
             ReportState reportOutput = reportOutputs.get(0);
-            ScheduleEscrowState jobOutput = jobOutputs.get(0);
+            ScheduleClauseState jobOutput = jobOutputs.get(0);
 
             require.using("Report should have status: UNSEEN",
                     reportInput.getStatus() == ReportStatus.ISSUED);
@@ -442,13 +449,13 @@ public class ScheduleEscrowContract implements Contract {
             require.using("Two inputs should be consumed.", tx.getInputs().size() == 2);
             require.using("Two outputs should be produced.", tx.getOutputs().size() == 2);
 
-            List<ScheduleEscrowState> jobInputs =  tx.inputsOfType(ScheduleEscrowState.class);
+            List<ScheduleClauseState> jobInputs =  tx.inputsOfType(ScheduleClauseState.class);
             List<ReportState> reportInputs = tx.inputsOfType(ReportState.class);
 
             require.using("Must have one JobState input and one ReportState input",
                     !jobInputs.isEmpty() && !reportInputs.isEmpty());
 
-            List<ScheduleEscrowState> jobOutputs =  tx.outputsOfType(ScheduleEscrowState.class);
+            List<ScheduleClauseState> jobOutputs =  tx.outputsOfType(ScheduleClauseState.class);
             List<ReportState> reportOutputs = tx.outputsOfType(ReportState.class);
 
             require.using("Must have one JobState output and one ReportState output",
@@ -456,9 +463,9 @@ public class ScheduleEscrowContract implements Contract {
 
             // Report-specific verification:
             ReportState reportInput = reportInputs.get(0);
-            ScheduleEscrowState jobInput = jobInputs.get(0);
+            ScheduleClauseState jobInput = jobInputs.get(0);
             ReportState reportOutput = reportOutputs.get(0);
-            ScheduleEscrowState jobOutput = jobOutputs.get(0);
+            ScheduleClauseState jobOutput = jobOutputs.get(0);
 
             require.using("Report should have status: PROCESSED",
                     reportInput.getStatus() == ReportStatus.PROCESSED);
@@ -493,7 +500,7 @@ public class ScheduleEscrowContract implements Contract {
             require.using("Output Job should have same amount as requested in report",
                     expectedOutputJobs.get(0).equalsExcept(outputModifiedJob, "Status"));
 
-            ScheduleEscrowState expectedOutputEscrowState =
+            ScheduleClauseState expectedOutputEscrowState =
                     jobInput.copyBuilder()
                     .withContractSum(requestedContractSumAmount)
                     .withJobs(expectedOutputJobs)
@@ -522,13 +529,13 @@ public class ScheduleEscrowContract implements Contract {
             require.using("Two inputs should be consumed.", tx.getInputs().size() == 2);
             require.using("Two outputs should be produced.", tx.getOutputs().size() == 2);
 
-            List<ScheduleEscrowState> jobInputs =  tx.inputsOfType(ScheduleEscrowState.class);
+            List<ScheduleClauseState> jobInputs =  tx.inputsOfType(ScheduleClauseState.class);
             List<ReportState> reportInputs = tx.inputsOfType(ReportState.class);
 
             require.using("Must have one JobState input and one ReportState input",
                     !jobInputs.isEmpty() && !reportInputs.isEmpty());
 
-            List<ScheduleEscrowState> jobOutputs =  tx.outputsOfType(ScheduleEscrowState.class);
+            List<ScheduleClauseState> jobOutputs =  tx.outputsOfType(ScheduleClauseState.class);
             List<ReportState> reportOutputs = tx.outputsOfType(ReportState.class);
 
             require.using("Must have one JobState output and one ReportState output",
@@ -536,9 +543,9 @@ public class ScheduleEscrowContract implements Contract {
 
             // Report-specific verification:
             ReportState reportInput = reportInputs.get(0);
-            ScheduleEscrowState jobInput = jobInputs.get(0);
+            ScheduleClauseState jobInput = jobInputs.get(0);
             ReportState reportOutput = reportOutputs.get(0);
-            ScheduleEscrowState jobOutput = jobOutputs.get(0);
+            ScheduleClauseState jobOutput = jobOutputs.get(0);
 
             require.using("Report should have status: UNSEEN",
                     reportInput.getStatus() == ReportStatus.ISSUED);
@@ -593,13 +600,13 @@ public class ScheduleEscrowContract implements Contract {
             require.using("Two inputs should be consumed.", tx.getInputs().size() == 2);
             require.using("Two outputs should be produced.", tx.getOutputs().size() == 2);
 
-            List<ScheduleEscrowState> jobInputs =  tx.inputsOfType(ScheduleEscrowState.class);
+            List<ScheduleClauseState> jobInputs =  tx.inputsOfType(ScheduleClauseState.class);
             List<ReportState> reportInputs = tx.inputsOfType(ReportState.class);
 
             require.using("Must have one JobState input and one ReportState input",
                     !jobInputs.isEmpty() && !reportInputs.isEmpty());
 
-            List<ScheduleEscrowState> jobOutputs =  tx.outputsOfType(ScheduleEscrowState.class);
+            List<ScheduleClauseState> jobOutputs =  tx.outputsOfType(ScheduleClauseState.class);
             List<ReportState> reportOutputs = tx.outputsOfType(ReportState.class);
 
             require.using("Must have one JobState output and one ReportState output",
@@ -607,9 +614,9 @@ public class ScheduleEscrowContract implements Contract {
 
             // Report-specific verification:
             ReportState reportInput = reportInputs.get(0);
-            ScheduleEscrowState jobInput = jobInputs.get(0);
+            ScheduleClauseState jobInput = jobInputs.get(0);
             ReportState reportOutput = reportOutputs.get(0);
-            ScheduleEscrowState jobOutput = jobOutputs.get(0);
+            ScheduleClauseState jobOutput = jobOutputs.get(0);
 
             require.using("Report should have status: PROCESSED",
                     reportInput.getStatus() == ReportStatus.PROCESSED);

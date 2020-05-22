@@ -2,7 +2,7 @@ package com.template.contracts;
 
 import com.template.states.JCTJob;
 import com.template.states.JCTJobStatus;
-import com.template.states.ScheduleEscrowState;
+import com.template.states.ScheduleClauseState;
 import kotlin.Unit;
 import net.corda.core.identity.CordaX500Name;
 import net.corda.core.identity.Party;
@@ -34,11 +34,11 @@ public class StartScheduleJobContractTests {
     JCTJob job1InProgress = job1.copyBuilder().withStatus(JCTJobStatus.IN_PROGRESS).build();
     JCTJob job2InProgress = job2.copyBuilder().withStatus(JCTJobStatus.IN_PROGRESS).build();
 
-    private ScheduleEscrowState getScheduleEscrowState(ScheduleEscrowState state) {
+    private ScheduleClauseState getScheduleEscrowState(ScheduleClauseState state) {
         List<JCTJob> jobs;
         if (state == null) {
             jobs = Arrays.asList(job1, job2);
-            return new ScheduleEscrowState(
+            return new ScheduleClauseState(
                     "Project Title",
                     employers,
                     contractors,
@@ -54,13 +54,13 @@ public class StartScheduleJobContractTests {
 
     @Test
     public void startScheduleJobShouldWork() {
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.StartJob(0));
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.StartJob(0));
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.verifies();
             });
             return Unit.INSTANCE;
@@ -69,17 +69,17 @@ public class StartScheduleJobContractTests {
 
     @Test
     public void mustHaveOneOutputAndInputState() {
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.StartJob(0));
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.StartJob(0));
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("One JobState input should be consumed.");
             });
             l.transaction(tx -> {
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.StartJob(0));
-                tx.input(ScheduleEscrowContract.ID, inputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.StartJob(0));
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
                 return tx.failsWith("One JobState output should be produced.");
             });
             return Unit.INSTANCE;
@@ -88,15 +88,15 @@ public class StartScheduleJobContractTests {
 
     @Test
     public void jobToBeUpdatedMustHaveInputStatusPENDING() {
-        ScheduleEscrowState unusedState = getScheduleEscrowState(null);
+        ScheduleClauseState unusedState = getScheduleEscrowState(null);
         List<JCTJob> newInputJobs = Arrays.asList(job1InProgress, job2InProgress);
-        ScheduleEscrowState inputState = unusedState.copyBuilder().withJobs(newInputJobs).build();
-        ScheduleEscrowState outputState = inputState.copyBuilder().withJobs(newInputJobs).build();
+        ScheduleClauseState inputState = unusedState.copyBuilder().withJobs(newInputJobs).build();
+        ScheduleClauseState outputState = inputState.copyBuilder().withJobs(newInputJobs).build();
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.StartJob(0));
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.StartJob(0));
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("The modified Job should have an input status of PENDING.");
             });
             return Unit.INSTANCE;
@@ -105,14 +105,14 @@ public class StartScheduleJobContractTests {
 
     @Test
     public void jobToBeUpdatedMustHaveOutputStatusINPROGRESS() {
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
         List<JCTJob> outputJobs = Arrays.asList(job1, job2InProgress);
-        ScheduleEscrowState outputState = inputState.copyBuilder().withJobs(outputJobs).build();
+        ScheduleClauseState outputState = inputState.copyBuilder().withJobs(outputJobs).build();
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.StartJob(0));
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.StartJob(0));
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("The Job should have an output status of IN_PROGRESS.");
             });
             return Unit.INSTANCE;
@@ -121,15 +121,15 @@ public class StartScheduleJobContractTests {
 
     @Test
     public void updatedJobDescriptionAndAmountShouldNotChange() {
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
         JCTJob outputJob1 = job1InProgress.copyBuilder().withDescription("THIS IS AN INCORRECT DESCRIPTION").withAmount(10.0).build();
         List<JCTJob> outputJobs = Arrays.asList(outputJob1, job2);
-        ScheduleEscrowState outputState = inputState.copyBuilder().withJobs(outputJobs).build();
+        ScheduleClauseState outputState = inputState.copyBuilder().withJobs(outputJobs).build();
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.StartJob(0));
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.StartJob(0));
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("The modified Job's description and amount shouldn't change.");
             });
             return Unit.INSTANCE;
@@ -138,15 +138,15 @@ public class StartScheduleJobContractTests {
 
     @Test
     public void otherJobsShouldNotBeUpdated() {
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
         JCTJob updatedJob2 = job2.copyBuilder().withDescription("BREAKING UPDATE").build();
         List<JCTJob> outputJobs = Arrays.asList(job1InProgress, updatedJob2);
-        ScheduleEscrowState outputState = inputState.copyBuilder().withJobs(outputJobs).build();
+        ScheduleClauseState outputState = inputState.copyBuilder().withJobs(outputJobs).build();
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.StartJob(0));
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.StartJob(0));
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("All other jobs mustn't be changed");
             });
             return Unit.INSTANCE;
@@ -155,21 +155,27 @@ public class StartScheduleJobContractTests {
 
     @Test
     public void allEmployersAndContractorsMustBeIncludedInTransaction() {
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        // Valid input Schedule Clause state
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        // Valid output Schedule Clause state
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
+        // Valid set of required employer signatures
         List<PublicKey> employerKeys = Arrays.asList(employers.get(0).getOwningKey(), employers.get(0).getOwningKey());
+        // Valid set of required contractor signatures
         List<PublicKey> contractorKeys = Arrays.asList(contractors.get(0).getOwningKey(), contractors.get(0).getOwningKey());
         ledger(ledgerServices, l -> {
+            // Failing transaction that is only signed by employers
             l.transaction(tx -> {
-                tx.command(employerKeys, new ScheduleEscrowContract.Commands.StartJob(0));
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(employerKeys, new ScheduleClauseContract.Commands.StartJob(0));
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("The employers and contractors should be required signers.");
             });
+            // Failing transaction that is only signed by contractors
             l.transaction(tx -> {
-                tx.command(contractorKeys, new ScheduleEscrowContract.Commands.StartJob(0));
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(contractorKeys, new ScheduleClauseContract.Commands.StartJob(0));
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("The employers and contractors should be required signers.");
             });
             return Unit.INSTANCE;

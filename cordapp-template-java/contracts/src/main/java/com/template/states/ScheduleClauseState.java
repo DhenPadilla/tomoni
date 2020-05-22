@@ -1,6 +1,6 @@
 package com.template.states;
 
-import com.template.contracts.ScheduleEscrowContract;
+import com.template.contracts.ScheduleClauseContract;
 import net.corda.core.contracts.BelongsToContract;
 import net.corda.core.contracts.ContractState;
 import net.corda.core.contracts.LinearState;
@@ -20,8 +20,8 @@ import java.util.stream.Collectors;
 // *********
 // * State *
 // *********
-@BelongsToContract(ScheduleEscrowContract.class)
-public class ScheduleEscrowState implements ContractState, LinearState {
+@BelongsToContract(ScheduleClauseContract.class)
+public class ScheduleClauseState implements ContractState, LinearState {
 
     private final UniqueIdentifier linearId;
     private final String projectName;
@@ -35,7 +35,7 @@ public class ScheduleEscrowState implements ContractState, LinearState {
     private List<JCTJob> jobs;
 
     @ConstructorForDeserialization
-    public ScheduleEscrowState(UniqueIdentifier linearId, String projectName, List<Party> employers, List<Party> contractors, Double contractSum, Double retentionPercentage, List<JCTJob> jobs) {
+    public ScheduleClauseState(UniqueIdentifier linearId, String projectName, List<Party> employers, List<Party> contractors, Double contractSum, Double retentionPercentage, List<JCTJob> jobs) {
         this.linearId = linearId;
         this.projectName = projectName;
         this.employers = employers;
@@ -45,7 +45,7 @@ public class ScheduleEscrowState implements ContractState, LinearState {
         this.jobs = jobs;
     }
 
-    public ScheduleEscrowState(String projectName, List<Party> employers, List<Party> contractors, Double contractSum, Double retentionPercentage, List<JCTJob> jobs) {
+    public ScheduleClauseState(String projectName, List<Party> employers, List<Party> contractors, Double contractSum, Double retentionPercentage, List<JCTJob> jobs) {
         this.linearId = new UniqueIdentifier();
         this.projectName = projectName;
         this.employers = employers;
@@ -130,7 +130,7 @@ public class ScheduleEscrowState implements ContractState, LinearState {
         private Double previousCumulativeValue = 0.0;
         private List<JCTJob> jobs;
 
-        public ScheduleEscrowStateBuilder(ScheduleEscrowState origin) {
+        public ScheduleEscrowStateBuilder(ScheduleClauseState origin) {
             this.projectName = origin.getProjectName();
             this.linearId = origin.getLinearId();
             this.employers = origin.getEmployers();
@@ -140,41 +140,41 @@ public class ScheduleEscrowState implements ContractState, LinearState {
             this.jobs = origin.getJobs();
         }
 
-        public ScheduleEscrowState.ScheduleEscrowStateBuilder withEmployers(List<Party> employers) {
+        public ScheduleClauseState.ScheduleEscrowStateBuilder withEmployers(List<Party> employers) {
             this.employers = employers;
             return this;
         }
 
-        public ScheduleEscrowState.ScheduleEscrowStateBuilder withContractSum(Double contractSum) {
+        public ScheduleClauseState.ScheduleEscrowStateBuilder withContractSum(Double contractSum) {
             this.contractSum = contractSum;
             return this;
         }
 
-        public ScheduleEscrowState.ScheduleEscrowStateBuilder withPercentage(Double retentionPercentage) {
+        public ScheduleClauseState.ScheduleEscrowStateBuilder withPercentage(Double retentionPercentage) {
             this.retentionPercentage = retentionPercentage;
             return this;
         }
 
-        public ScheduleEscrowState.ScheduleEscrowStateBuilder withJobs(List<JCTJob> jobs) {
+        public ScheduleClauseState.ScheduleEscrowStateBuilder withJobs(List<JCTJob> jobs) {
             this.jobs = jobs;
             return this;
         }
 
 
-        public ScheduleEscrowState build() {
-            return new ScheduleEscrowState(this.linearId, this.projectName, this.employers, this.contractors, this.contractSum, this.retentionPercentage, this.jobs);
+        public ScheduleClauseState build() {
+            return new ScheduleClauseState(this.linearId, this.projectName, this.employers, this.contractors, this.contractSum, this.retentionPercentage, this.jobs);
         }
     }
 
-    public ScheduleEscrowState.ScheduleEscrowStateBuilder copyBuilder() {
-        return new ScheduleEscrowState.ScheduleEscrowStateBuilder(this);
+    public ScheduleClauseState.ScheduleEscrowStateBuilder copyBuilder() {
+        return new ScheduleClauseState.ScheduleEscrowStateBuilder(this);
     }
 
     public boolean equals(Object obj) {
         // Omits unique Identifier
         boolean flag = false;
-        if (obj instanceof ScheduleEscrowState) {
-            ScheduleEscrowState schedule = (ScheduleEscrowState) obj;
+        if (obj instanceof ScheduleClauseState) {
+            ScheduleClauseState schedule = (ScheduleClauseState) obj;
             if (Objects.equals(schedule.getContractSum(), this.getContractSum()) &&
                     Objects.equals(schedule.getRetentionPercentage(), this.getRetentionPercentage()) &&
                     Objects.equals(schedule.getParticipants(), this.getParticipants()) &&

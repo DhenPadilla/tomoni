@@ -29,19 +29,19 @@ public class CreateScheduleEscrowContractTests {
 
     JobExamples jobFactory = new JobExamples();
 
-    private ScheduleEscrowState getScheduleEscrow(boolean empIsCon, List<JCTJob> jobs) {
+    private ScheduleClauseState getScheduleEscrow(boolean empIsCon, List<JCTJob> jobs) {
         if (jobs == null) {
             jobs = jobFactory.getJobExamples();
         }
         if (empIsCon) {
-            return new ScheduleEscrowState(
+            return new ScheduleClauseState(
                     "Project Title",
                     employers,
                     employers,
                     1000.0,
                     1.0, jobs);
         }
-        return new ScheduleEscrowState(
+        return new ScheduleClauseState(
                 "Project Title",
                 employers,
                 contractors,
@@ -51,12 +51,12 @@ public class CreateScheduleEscrowContractTests {
 
     @Test
     public void shouldCreateEscrowStateSuccessfully() {
-        ScheduleEscrowState outputState = getScheduleEscrow(false,null);
+        ScheduleClauseState outputState = getScheduleEscrow(false,null);
         System.out.println("jobs.isEmpty(): " + outputState.getJobs().isEmpty());
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.CreateSchedule());
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.CreateSchedule());
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.verifies();
             });
             return Unit.INSTANCE;
@@ -65,13 +65,13 @@ public class CreateScheduleEscrowContractTests {
 
     @Test
     public void shouldRejectAnyInputStates() {
-        ScheduleEscrowState inputState = getScheduleEscrow(false, null);
-        ScheduleEscrowState outputState = getScheduleEscrow(false, null);
+        ScheduleClauseState inputState = getScheduleEscrow(false, null);
+        ScheduleClauseState outputState = getScheduleEscrow(false, null);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.CreateSchedule());
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.CreateSchedule());
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("No inputs should be consumed when issuing a Schedule.");
             });
             return Unit.INSTANCE;
@@ -80,12 +80,12 @@ public class CreateScheduleEscrowContractTests {
 
     @Test
     public void shouldCreateSingleOutputState() {
-        ScheduleEscrowState outputState = getScheduleEscrow(false, null);
+        ScheduleClauseState outputState = getScheduleEscrow(false, null);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.CreateSchedule());
-                tx.output(ScheduleEscrowContract.ID, outputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.CreateSchedule());
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("There should be one output state.");
             });
             return Unit.INSTANCE;
@@ -94,11 +94,11 @@ public class CreateScheduleEscrowContractTests {
 
     @Test
     public void employersDifferFromContractors() {
-        ScheduleEscrowState outputState = getScheduleEscrow(true, null);
+        ScheduleClauseState outputState = getScheduleEscrow(true, null);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.CreateSchedule());
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.CreateSchedule());
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("The employers and the contractors should be different parties.");
             });
             return Unit.INSTANCE;
@@ -110,8 +110,8 @@ public class CreateScheduleEscrowContractTests {
         JCTMasterState outputState = new JCTMasterState("Project 1", employers.get(0), contractors.get(0));
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.CreateSchedule());
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.CreateSchedule());
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("Output state is a type of: 'ScheduleEscrowState'");
             });
             return Unit.INSTANCE;
@@ -123,11 +123,11 @@ public class CreateScheduleEscrowContractTests {
         JCTJob inProgressJob1 = new JCTJob(null,null,null,null,null, JCTJobStatus.PENDING);
         JCTJob inProgressJob2 = new JCTJob(null,null,null,null,null,JCTJobStatus.IN_PROGRESS);
         List<JCTJob> inProgressJobs = Arrays.asList(inProgressJob1, inProgressJob2);
-        ScheduleEscrowState outputState = getScheduleEscrow(false, inProgressJobs);
+        ScheduleClauseState outputState = getScheduleEscrow(false, inProgressJobs);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.CreateSchedule());
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.CreateSchedule());
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("All the jobs should be unstarted/pending.");
             });
             return Unit.INSTANCE;
@@ -137,11 +137,11 @@ public class CreateScheduleEscrowContractTests {
     @Test
     public void mustHaveAtLeastOneNonEmptyJobInSchedule() {
         List<JCTJob> emptyJobs = Collections.emptyList();
-        ScheduleEscrowState outputState = getScheduleEscrow(false, emptyJobs);
+        ScheduleClauseState outputState = getScheduleEscrow(false, emptyJobs);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.CreateSchedule());
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.CreateSchedule());
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("Must have at least one Job");
             });
             return Unit.INSTANCE;
@@ -150,7 +150,7 @@ public class CreateScheduleEscrowContractTests {
 
     @Test
     public void allEmployersAndContractorsMustBeIncludedInTransaction() {
-        ScheduleEscrowState outputState = getScheduleEscrow(false, null);
+        ScheduleClauseState outputState = getScheduleEscrow(false, null);
         List<PublicKey> employerKeys = Arrays.asList(employers.get(0).getOwningKey(), employers.get(0).getOwningKey());
         List<PublicKey> contractorKeys = Arrays.asList(contractors.get(0).getOwningKey(), contractors.get(0).getOwningKey());
         System.out.println("LIST of Employers: " + employerKeys.size());
@@ -158,13 +158,13 @@ public class CreateScheduleEscrowContractTests {
         System.out.println("LIST of Required: " + requiredSigners.size());
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
-                tx.command(employerKeys, new ScheduleEscrowContract.Commands.CreateSchedule());
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(employerKeys, new ScheduleClauseContract.Commands.CreateSchedule());
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("The employers and contractors should be required signers.");
             });
             l.transaction(tx -> {
-                tx.command(contractorKeys, new ScheduleEscrowContract.Commands.CreateSchedule());
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.command(contractorKeys, new ScheduleClauseContract.Commands.CreateSchedule());
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("The employers and contractors should be required signers.");
             });
             return Unit.INSTANCE;

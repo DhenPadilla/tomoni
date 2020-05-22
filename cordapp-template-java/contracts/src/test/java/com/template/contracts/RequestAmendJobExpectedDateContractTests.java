@@ -39,11 +39,11 @@ public class RequestAmendJobExpectedDateContractTests {
             .withStatus(JCTJobStatus.DATE_AMENDMENT_REQUESTED)
             .build();
 
-    private ScheduleEscrowState getScheduleEscrowState(ScheduleEscrowState state) {
+    private ScheduleClauseState getScheduleEscrowState(ScheduleClauseState state) {
         List<JCTJob> jobs;
         if (state == null) {
             jobs = Arrays.asList(job1, job2);
-            return new ScheduleEscrowState(
+            return new ScheduleClauseState(
                     "Project Title",
                     employers,
                     contractors,
@@ -69,8 +69,8 @@ public class RequestAmendJobExpectedDateContractTests {
     public void confirmAmendDateShouldWork() {
         ReportState inputReportState = getReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
         LocalDate extendedDate = job1.getExpectedEndDate().plusMonths(3);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
@@ -80,10 +80,10 @@ public class RequestAmendJobExpectedDateContractTests {
             });
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputReportState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.RequestExpectedDateModification(0, extendedDate));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.RequestExpectedDateModification(0, extendedDate));
                 return tx.verifies();
             });
             return Unit.INSTANCE;
@@ -94,9 +94,9 @@ public class RequestAmendJobExpectedDateContractTests {
     @Test
     public void requestAmendJobShouldHaveTwoInputs() {
         ReportState outputReportState = getReportState(ReportStatus.ISSUED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
         LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate().plusMonths(3);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
 
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
@@ -105,9 +105,9 @@ public class RequestAmendJobExpectedDateContractTests {
                 return tx.verifies();
             });
             l.transaction(tx -> {
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.RequestExpectedDateModification(0, extendedDate));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.RequestExpectedDateModification(0, extendedDate));
                 tx.input(ReportContract.ID, outputReportState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("Two inputs should be consumed.");
             });
             return Unit.INSTANCE;
@@ -117,9 +117,9 @@ public class RequestAmendJobExpectedDateContractTests {
     @Test
     public void requestAmendJobShouldHaveTwoOutputs() {
         ReportState outputReportState = getReportState(ReportStatus.ISSUED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
         LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate().plusMonths(3);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.output(ReportContract.ID, "J1 Report 1", outputReportState);
@@ -128,9 +128,9 @@ public class RequestAmendJobExpectedDateContractTests {
             });
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, outputReportState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.RequestExpectedDateModification(0, extendedDate));
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.RequestExpectedDateModification(0, extendedDate));
                 return tx.failsWith("Two outputs should be produced.");
             });
             return Unit.INSTANCE;
@@ -140,8 +140,8 @@ public class RequestAmendJobExpectedDateContractTests {
     @Test
     public void requestAmendJobShouldHaveOneReportAndOneJobInput() {
         ReportState outputReportState = getReportState(ReportStatus.ISSUED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
         LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate().plusMonths(3);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
@@ -150,11 +150,11 @@ public class RequestAmendJobExpectedDateContractTests {
                 return tx.verifies();
             });
             l.transaction(tx -> {
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.RequestExpectedDateModification(0, extendedDate));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.RequestExpectedDateModification(0, extendedDate));
                 return tx.failsWith("Must have one JobState input and one ReportState input");
             });
             return Unit.INSTANCE;
@@ -164,8 +164,8 @@ public class RequestAmendJobExpectedDateContractTests {
     @Test
     public void requestAmendJobShouldHaveOneReportAndOneJobOutput() {
         ReportState outputReportState = getReportState(ReportStatus.ISSUED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
         LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate().plusMonths(3);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
@@ -175,10 +175,10 @@ public class RequestAmendJobExpectedDateContractTests {
             });
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.RequestExpectedDateModification(0, extendedDate));
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.RequestExpectedDateModification(0, extendedDate));
                 return tx.failsWith("Must have one JobState input and one ReportState input");
             });
             return Unit.INSTANCE;
@@ -189,8 +189,8 @@ public class RequestAmendJobExpectedDateContractTests {
     public void attachedReportContractMustHaveStatusUNSEEN() {
         ReportState inputReportState = getReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
         LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate().plusMonths(3);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
@@ -200,10 +200,10 @@ public class RequestAmendJobExpectedDateContractTests {
             });
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, outputReportState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.RequestExpectedDateModification(0, extendedDate));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.RequestExpectedDateModification(0, extendedDate));
                 return tx.failsWith("Report should have status: UNSEEN");
             });
             return Unit.INSTANCE;
@@ -213,16 +213,16 @@ public class RequestAmendJobExpectedDateContractTests {
     @Test
     public void outputReportContractMustHaveStatusPROCESSED() {
         ReportState inputReportState = getReportState(ReportStatus.ISSUED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
         LocalDate extendedDate = inputState.getJobs().get(0).getExpectedEndDate().plusMonths(3);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputReportState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, inputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.RequestExpectedDateModification(0, extendedDate));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.RequestExpectedDateModification(0, extendedDate));
                 return tx.failsWith("Output Report should have status: PROCESSED");
             });
             return Unit.INSTANCE;
@@ -231,19 +231,26 @@ public class RequestAmendJobExpectedDateContractTests {
 
     @Test
     public void jobInputForRequestDateModificationShouldHaveStatusINPROGRESS() {
+        // Valid input Report state with status: ISSUED
         ReportState inputReportState = getReportState(ReportStatus.ISSUED);
+        // Valid output Report state with status: PROCESSED
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        List<JCTJob> jobs = Arrays.asList(job1.copyBuilder().withStatus(JCTJobStatus.COMPLETED).build(), job2);
-        ScheduleEscrowState outputState = inputState.copyBuilder().withJobs(jobs).build();
+        // Invalid input Schedule Clause state with job status: PENDING
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        List<JCTJob> jobs = Arrays.asList(job1.copyBuilder().withStatus(JCTJobStatus.DATE_AMENDMENT_REQUESTED).build(), job2);
+        // Valid output Schedule Clause state with job status: DATE_AMENDMENT_REQUESTED
+        ScheduleClauseState outputState = inputState.copyBuilder().withJobs(jobs).build();
+        // Prepare the RequestExpectedDateModification ledger transaction with the input/output states above
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputReportState);
-                tx.input(ScheduleEscrowContract.ID, outputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.RequestExpectedDateModification(
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
+                // Execute the transaction with the states above, and the correct set of signers
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.RequestExpectedDateModification(
                         0, requestCompletionDate));
+                // Test should correctly fail with the following error:
                 return tx.failsWith("Input Job should have status: IN_PROGRESS");
             });
             return Unit.INSTANCE;
@@ -254,16 +261,16 @@ public class RequestAmendJobExpectedDateContractTests {
     public void jobOutputShouldHaveStatusDATEREQUESTED() {
         ReportState inputReportState = getReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
         List<JCTJob> jobs = Arrays.asList(job1.copyBuilder().withStatus(JCTJobStatus.COMPLETED).build(), job2);
-        ScheduleEscrowState outputState = inputState.copyBuilder().withJobs(jobs).build();
+        ScheduleClauseState outputState = inputState.copyBuilder().withJobs(jobs).build();
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputReportState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.RequestExpectedDateModification(0, requestCompletionDate));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.RequestExpectedDateModification(0, requestCompletionDate));
                 return tx.failsWith("Output Job should have status: DATE_AMENDMENT_REQUESTED");
             });
             return Unit.INSTANCE;
@@ -274,16 +281,16 @@ public class RequestAmendJobExpectedDateContractTests {
     public void shouldNotModifyScheduleEscrowStateExpectedEndDate() {
         ReportState inputReportState = getReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
         List<JCTJob> jobs = Arrays.asList(job1Output.copyBuilder().withExpectedEndDate(requestCompletionDate).build(), job2);
-        ScheduleEscrowState outputState = inputState.copyBuilder().withJobs(jobs).build();
+        ScheduleClauseState outputState = inputState.copyBuilder().withJobs(jobs).build();
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputReportState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.RequestExpectedDateModification(0, requestCompletionDate));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.RequestExpectedDateModification(0, requestCompletionDate));
                 return tx.failsWith("Input ScheduleEscrowState should not change besides Status");
             });
             return Unit.INSTANCE;
@@ -294,16 +301,16 @@ public class RequestAmendJobExpectedDateContractTests {
     public void shouldSaveExpectedEndDateInReportStateCorrectly() {
         ReportState inputReportState = getNullRequestReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getNullRequestReportState(ReportStatus.PROCESSED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
         List<JCTJob> jobs = Arrays.asList(job1Output, job2);
-        ScheduleEscrowState outputState = inputState.copyBuilder().withJobs(jobs).build();
+        ScheduleClauseState outputState = inputState.copyBuilder().withJobs(jobs).build();
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputReportState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.RequestExpectedDateModification(0, requestCompletionDate));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.RequestExpectedDateModification(0, requestCompletionDate));
                 return tx.failsWith("Expected End Date of job should be saved in output ReportState");
             });
             return Unit.INSTANCE;
@@ -315,16 +322,16 @@ public class RequestAmendJobExpectedDateContractTests {
         List<PublicKey> employerKeys = Arrays.asList(employers.get(0).getOwningKey(), employers.get(1).getOwningKey());
         ReportState inputReportState = getNullRequestReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getReportState(ReportStatus.PROCESSED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
 
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputReportState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(employerKeys, new ScheduleEscrowContract.Commands.RequestExpectedDateModification(0, requestCompletionDate));
+                tx.command(employerKeys, new ScheduleClauseContract.Commands.RequestExpectedDateModification(0, requestCompletionDate));
                 return tx.failsWith("At least a single contractor should be a required signer.");
             });
             return Unit.INSTANCE;

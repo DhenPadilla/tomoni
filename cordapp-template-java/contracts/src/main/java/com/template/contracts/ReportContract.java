@@ -35,7 +35,7 @@ public class ReportContract implements Contract {
         // Check if inputted command is of type: "ScheduleEscrowContract.Command"
         // and if it is, dismiss from this verify.
         // Verification is handled in ScheduleEscrowContract
-        if(commands.stream().anyMatch(com -> com.getValue() instanceof ScheduleEscrowContract.Commands)) {
+        if(commands.stream().anyMatch(com -> com.getValue() instanceof ScheduleClauseContract.Commands)) {
             return;
         }
         final ReportContract.Commands command = tx.findCommand(ReportContract.Commands.class, cmd -> true).getValue();

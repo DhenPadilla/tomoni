@@ -40,11 +40,11 @@ public class AcceptAmendJobAmountContractTests {
             .withAmount(newAmount)
             .build();
 
-    private ScheduleEscrowState getScheduleEscrowState(ScheduleEscrowState state) {
+    private ScheduleClauseState getScheduleEscrowState(ScheduleClauseState state) {
         List<JCTJob> jobs;
         if (state == null) {
             jobs = Arrays.asList(job1, job2);
-            return new ScheduleEscrowState(
+            return new ScheduleClauseState(
                     "Project Title",
                     employers,
                     contractors,
@@ -70,15 +70,15 @@ public class AcceptAmendJobAmountContractTests {
     public void confirmAmendDateShouldWork() {
         ReportState inputReportState = getRequestReportState(ReportStatus.PROCESSED);
         ReportState outputReportState = getOutputReportState(ReportStatus.CONSUMED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputReportState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.AcceptAmountModification(0));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.AcceptAmountModification(0));
                 return tx.verifies();
             });
             return Unit.INSTANCE;
@@ -89,14 +89,14 @@ public class AcceptAmendJobAmountContractTests {
     @Test
     public void acceptAmendJobShouldHaveTwoInputs() {
         ReportState outputReportState = getOutputReportState(ReportStatus.PROCESSED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
 
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.AcceptAmountModification(0));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.AcceptAmountModification(0));
                 tx.input(ReportContract.ID, outputReportState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 return tx.failsWith("Two inputs should be consumed.");
             });
             return Unit.INSTANCE;
@@ -106,8 +106,8 @@ public class AcceptAmendJobAmountContractTests {
     @Test
     public void acceptAmendJobShouldHaveTwoOutputs() {
         ReportState outputReportState = getOutputReportState(ReportStatus.ISSUED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.output(ReportContract.ID, "J1 Report 1", outputReportState);
@@ -116,9 +116,9 @@ public class AcceptAmendJobAmountContractTests {
             });
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, outputReportState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.AcceptAmountModification(0));
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.AcceptAmountModification(0));
                 return tx.failsWith("Two outputs should be produced.");
             });
             return Unit.INSTANCE;
@@ -128,15 +128,15 @@ public class AcceptAmendJobAmountContractTests {
     @Test
     public void acceptAmendJobShouldHaveOneReportAndOneJobInput() {
         ReportState outputReportState = getOutputReportState(ReportStatus.PROCESSED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.AcceptAmountModification(0));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.AcceptAmountModification(0));
                 return tx.failsWith("Must have one JobState input and one ReportState input");
             });
             return Unit.INSTANCE;
@@ -145,15 +145,15 @@ public class AcceptAmendJobAmountContractTests {
 
     @Test
     public void acceptAmendJobShouldHaveOneReportAndOneJobOutput() {
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.AcceptAmountModification(0));
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.AcceptAmountModification(0));
                 return tx.failsWith("Must have one JobState input and one ReportState input");
             });
             return Unit.INSTANCE;
@@ -164,15 +164,15 @@ public class AcceptAmendJobAmountContractTests {
     public void inputReportContractMustHaveStatusPROCESSED() {
         ReportState inputReportState = getRequestReportState(ReportStatus.ISSUED);
         ReportState outputReportState = getOutputReportState(ReportStatus.PROCESSED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputReportState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.AcceptAmountModification(0));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.AcceptAmountModification(0));
                 return tx.failsWith("Report should have status: PROCESSED");
             });
             return Unit.INSTANCE;
@@ -183,15 +183,15 @@ public class AcceptAmendJobAmountContractTests {
     public void outputReportContractMustHaveStatusCONSUMED() {
         ReportState inputReportState = getRequestReportState(ReportStatus.PROCESSED);
         ReportState outputReportState = getOutputReportState(ReportStatus.PROCESSED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputReportState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.AcceptAmountModification(0));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.AcceptAmountModification(0));
                 return tx.failsWith("Output Report should have status: CONSUMED");
             });
             return Unit.INSTANCE;
@@ -202,16 +202,16 @@ public class AcceptAmendJobAmountContractTests {
     public void jobInputShouldHaveStatusAMOUNTREQUESTED() {
         ReportState inputReportState = getOutputReportState(ReportStatus.PROCESSED);
         ReportState outputReportState = getOutputReportState(ReportStatus.CONSUMED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
         List<JCTJob> jobs = Arrays.asList(job1.copyBuilder().withStatus(JCTJobStatus.COMPLETED).build(), job2);
-        ScheduleEscrowState outputState = inputState.copyBuilder().withJobs(jobs).build();
+        ScheduleClauseState outputState = inputState.copyBuilder().withJobs(jobs).build();
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputReportState);
-                tx.input(ScheduleEscrowContract.ID, outputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, outputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.AcceptAmountModification(0));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.AcceptAmountModification(0));
                 return tx.failsWith("Input Job should have status: AMOUNT_AMENDMENT_REQUESTED");
             });
             return Unit.INSTANCE;
@@ -222,16 +222,16 @@ public class AcceptAmendJobAmountContractTests {
     public void jobOutputShouldHaveStatusINPROGRESS() {
         ReportState inputReportState = getOutputReportState(ReportStatus.PROCESSED);
         ReportState outputReportState = getOutputReportState(ReportStatus.CONSUMED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
         List<JCTJob> jobs = Arrays.asList(job1.copyBuilder().withStatus(JCTJobStatus.COMPLETED).build(), job2);
-        ScheduleEscrowState outputState = inputState.copyBuilder().withJobs(jobs).build();
+        ScheduleClauseState outputState = inputState.copyBuilder().withJobs(jobs).build();
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputReportState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.AcceptAmountModification(0));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.AcceptAmountModification(0));
                 return tx.failsWith("Output Job should have status: IN_PROGRESS");
             });
             return Unit.INSTANCE;
@@ -242,17 +242,17 @@ public class AcceptAmendJobAmountContractTests {
     public void shouldModifyAmountInScheduleEscrowStateJobCorrectly() {
         ReportState inputReportState = getRequestReportState(ReportStatus.PROCESSED);
         ReportState outputReportState = getOutputReportState(ReportStatus.CONSUMED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
         List<JCTJob> jobs = Arrays.asList(job1Output.copyBuilder()
                 .withAmount(job1Output.getAmount() - 100.0).build(), job2);
-        ScheduleEscrowState outputState = inputState.copyBuilder().withJobs(jobs).build();
+        ScheduleClauseState outputState = inputState.copyBuilder().withJobs(jobs).build();
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputReportState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.AcceptAmountModification(0));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.AcceptAmountModification(0));
                 return tx.failsWith("Output Job should have same amount as requested in report");
             });
             return Unit.INSTANCE;
@@ -263,16 +263,16 @@ public class AcceptAmendJobAmountContractTests {
     public void shouldModifyContractSumInScheduleEscrowStateCorrectly() {
         ReportState inputReportState = getRequestReportState(ReportStatus.PROCESSED);
         ReportState outputReportState = getOutputReportState(ReportStatus.CONSUMED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState modifiedState = getScheduleEscrowState(inputState);
-        ScheduleEscrowState outputState = modifiedState.copyBuilder().withContractSum(modifiedState.getContractSum() - 100.0).build();
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState modifiedState = getScheduleEscrowState(inputState);
+        ScheduleClauseState outputState = modifiedState.copyBuilder().withContractSum(modifiedState.getContractSum() - 100.0).build();
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputReportState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(requiredSigners, new ScheduleEscrowContract.Commands.AcceptAmountModification(0));
+                tx.command(requiredSigners, new ScheduleClauseContract.Commands.AcceptAmountModification(0));
                 return tx.failsWith("Output ScheduleEscrowState should have same ContractSum as requested in report");
             });
             return Unit.INSTANCE;
@@ -285,17 +285,17 @@ public class AcceptAmendJobAmountContractTests {
         List<PublicKey> employerKeys = Arrays.asList(employers.get(1).getOwningKey());
         ReportState inputReportState = getRequestReportState(ReportStatus.PROCESSED);
         ReportState outputReportState = getOutputReportState(ReportStatus.CONSUMED);
-        ScheduleEscrowState inputState = getScheduleEscrowState(null);
-        ScheduleEscrowState outputState = getScheduleEscrowState(inputState);
+        ScheduleClauseState inputState = getScheduleEscrowState(null);
+        ScheduleClauseState outputState = getScheduleEscrowState(inputState);
         System.out.println(outputState.getContractSum());
 
         ledger(ledgerServices, l -> {
             l.transaction(tx -> {
                 tx.input(ReportContract.ID, inputReportState);
-                tx.input(ScheduleEscrowContract.ID, inputState);
-                tx.output(ScheduleEscrowContract.ID, outputState);
+                tx.input(com.template.contracts.ScheduleClauseContract.ID, inputState);
+                tx.output(com.template.contracts.ScheduleClauseContract.ID, outputState);
                 tx.output(ReportContract.ID, outputReportState);
-                tx.command(employerKeys, new ScheduleEscrowContract.Commands.AcceptAmountModification(0));
+                tx.command(employerKeys, new ScheduleClauseContract.Commands.AcceptAmountModification(0));
                 return tx.failsWith("All authorised employers should be required signers.");
             });
             return Unit.INSTANCE;

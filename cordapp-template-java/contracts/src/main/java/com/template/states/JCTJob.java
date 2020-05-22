@@ -19,7 +19,6 @@ public class JCTJob {
 //    private Amount<Currency> requestedAmount;
 //    private Amount<Currency> amountPaidOut;
 //    private Amount<Currency> paidOutMinusRet;
-    // TODO: Am I implementing this?...
     // List<SecureHash> documentsRequired = Arrays.asList();
     private JCTJobStatus status;
 

@@ -1,9 +1,9 @@
 package com.template.flows;
 
 import co.paralleluniverse.fibers.Suspendable;
-import com.template.contracts.ScheduleEscrowContract;
+import com.template.contracts.ScheduleClauseContract;
 import com.template.states.JCTJob;
-import com.template.states.ScheduleEscrowState;
+import com.template.states.ScheduleClauseState;
 import net.corda.core.contracts.Command;
 import net.corda.core.contracts.UniqueIdentifier;
 import net.corda.core.flows.*;
@@ -94,9 +94,9 @@ public class CreateJCTScheduleFlow extends FlowLogic<UniqueIdentifier> {
     @Suspendable
     @Override
     public UniqueIdentifier call() throws FlowException {
-    ScheduleEscrowState outputScheduleState = new ScheduleEscrowState(projectName, employers, contractors, contractAmount, retentionPercentage, jobs);
+    ScheduleClauseState outputScheduleState = new ScheduleClauseState(projectName, employers, contractors, contractAmount, retentionPercentage, jobs);
         List<PublicKey> requiredSigners = outputScheduleState.getParticipantKeys();
-        Command createCommand = new Command<>(new ScheduleEscrowContract.Commands.CreateSchedule(), requiredSigners);
+        Command createCommand = new Command<>(new ScheduleClauseContract.Commands.CreateSchedule(), requiredSigners);
 
         // Create a transaction builder and add the components
         // Transaction builders take in 'notary' party as the parameter to

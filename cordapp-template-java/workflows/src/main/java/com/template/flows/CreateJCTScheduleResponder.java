@@ -1,9 +1,7 @@
 package com.template.flows;
 
 import co.paralleluniverse.fibers.Suspendable;
-import com.template.contracts.ScheduleEscrowContract;
-import com.template.states.JCTMasterState;
-import com.template.states.ScheduleEscrowState;
+import com.template.states.ScheduleClauseState;
 import kotlin.Unit;
 import net.corda.core.contracts.ContractState;
 import net.corda.core.crypto.SecureHash;
@@ -36,8 +34,8 @@ public class CreateJCTScheduleResponder extends FlowLogic<Unit> {
                 requireThat(require -> {
                     ContractState output = stx.getTx().getOutputs().get(0).getData();
                     require.using("This must be an ScheduleEscrowState transaction - this transaction is not an 'ScheduleEscrowState'",
-                            output instanceof ScheduleEscrowState);
-                    ScheduleEscrowState scheduleEscrowState = (ScheduleEscrowState) output;
+                            output instanceof ScheduleClauseState);
+                    ScheduleClauseState scheduleEscrowState = (ScheduleClauseState) output;
                     require.using("JCT Project name must be given", !scheduleEscrowState.getProjectName().isEmpty());
                     require.using("ScheduleEscrow must have a Contract Sum", !scheduleEscrowState.getContractSum().isNaN());
                     return null;
